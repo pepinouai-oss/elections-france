@@ -14,6 +14,14 @@
         <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">🗳️ Élections Législatives 2024</h1>
             <p class="text-gray-600">Résultats du 2ème tour - 31 391 communes</p>
+            <div class="mt-4 flex gap-4">
+                <a href="https://docs.google.com/spreadsheets/d/VOTRE_ID_SHEET/edit#gid=0" target="_blank" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all inline-flex items-center gap-2">
+                    📊 Ouvrir les données brutes (Google Sheets)
+                </a>
+                <button onclick="showSheetEmbed()" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all">
+                    📋 Voir le tableau intégré
+                </button>
+            </div>
         </div>
 
         <!-- Panneau de filtres -->
@@ -159,6 +167,26 @@
                 </div>
             </div>
         </div>
+
+        <!-- VUE GOOGLE SHEETS -->
+        <div id="sheetView" class="hidden">
+            <div class="bg-white rounded-2xl shadow-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">📊 Données complètes (Google Sheets)</h2>
+                    <button onclick="hideSheetEmbed()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                        ✕ Fermer
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Utilisez les filtres de Google Sheets pour trier et filtrer comme vous voulez !</p>
+                <iframe 
+                    id="sheetIframe"
+                    width="100%" 
+                    height="800" 
+                    frameborder="0"
+                    class="border-2 border-gray-300 rounded-lg"
+                ></iframe>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -193,28 +221,73 @@
 
         async function loadDepartements() {
             try {
-                const { data, error } = await supabase
-                    .from('resultats_legislatives_2024')
-                    .select('departement_code, departement_nom');
-
-                if (error) throw error;
-
-                const depts = new Map();
-                data.forEach(d => depts.set(d.departement_code, d.departement_nom));
-
-                const select = document.getElementById('deptSelect');
-                const sorted = Array.from(depts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                console.log('🔄 Chargement des départements...');
                 
-                sorted.forEach(([code, nom]) => {
+                // Méthode ultra-robuste : charger TOUT puis dédupliquer en JS
+                const { data, error, count } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('departement_code, departement_nom', { count: 'exact' });
+
+                if (error) {
+                    console.error('❌ Erreur Supabase:', error);
+                    throw error;
+                }
+
+                console.log('📦 Données reçues:', data ? data.length : 0, 'lignes');
+
+                if (!data || data.length === 0) {
+                    console.error('❌ Aucune donnée retournée !');
+                    alert('Erreur : Aucune donnée trouvée dans Supabase');
+                    return;
+                }
+
+                // Créer un Map pour dédupliquer
+                const deptsMap = new Map();
+                data.forEach(item => {
+                    if (item.departement_code && item.departement_nom) {
+                        deptsMap.set(item.departement_code, item.departement_nom);
+                    }
+                });
+
+                console.log('🗺️ Départements uniques:', deptsMap.size);
+
+                // Convertir en tableau et trier
+                const deptArray = Array.from(deptsMap.entries()).sort((a, b) => {
+                    // Tri numérique pour les codes
+                    const numA = parseInt(a[0]);
+                    const numB = parseInt(b[0]);
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        return numA - numB;
+                    }
+                    return a[0].localeCompare(b[0]);
+                });
+
+                console.log('📋 Premiers départements:', deptArray.slice(0, 5));
+
+                // Remplir le select
+                const select = document.getElementById('deptSelect');
+                
+                // Vider d'abord (sauf l'option par défaut)
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+
+                // Ajouter chaque département
+                let added = 0;
+                deptArray.forEach(([code, nom]) => {
                     const option = document.createElement('option');
                     option.value = code;
                     option.textContent = `${code} - ${nom}`;
                     select.appendChild(option);
+                    added++;
                 });
 
-                console.log('✅ Départements chargés:', depts.size);
+                console.log('✅ Départements ajoutés au select:', added);
+                console.log('📊 Nombre total d\'options dans le select:', select.options.length - 1);
+
             } catch (error) {
-                console.error('Erreur:', error);
+                console.error('❌ Erreur complète:', error);
+                alert('Erreur lors du chargement des départements. Vérifiez la console (F12).');
             }
         }
 
