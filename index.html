@@ -3,176 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tableau de Bord Élections France 2024</title>
+    <title>Élections Législatives 2024 - France</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
-    <div class="max-w-7xl mx-auto p-6">
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- En-tête -->
         <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">🗳️ Élections Législatives 2024</h1>
-            <p class="text-gray-600">Tableau de bord interactif - 31 391 communes - 2ème tour</p>
+            <p class="text-gray-600">Tableau de bord unifié - 2ème tour</p>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-2xl mb-6">
-            <div class="flex border-b overflow-x-auto">
-                <button onclick="showTab('commune')" id="tab-commune" class="tab-button px-6 py-4 font-semibold border-b-2 border-indigo-600 text-indigo-600">
-                    🔍 Recherche Commune
-                </button>
-                <button onclick="showTab('national')" id="tab-national" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
-                    🗺️ Vue Nationale
-                </button>
-                <button onclick="showTab('departement')" id="tab-departement" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
-                    📍 Par Département
-                </button>
-                <button onclick="showTab('classement')" id="tab-classement" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
-                    🏆 Classements
-                </button>
-                <button onclick="showTab('comparaison')" id="tab-comparaison" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
-                    📊 Comparaison
-                </button>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-2xl p-8">
-            <!-- ONGLET 1 : Recherche Commune -->
-            <div id="content-commune" class="tab-content">
-                <h2 class="text-2xl font-bold mb-6">🔍 Rechercher une commune</h2>
-                
-                <div class="mb-6">
-                    <label class="block text-sm font-semibold mb-2">Sélectionnez une commune :</label>
+        <!-- Panneau de filtres -->
+        <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4">🔍 Filtres</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <!-- Filtre Commune -->
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Commune :</label>
                     <input 
                         type="text" 
-                        id="communeSearchInput" 
-                        placeholder="Tapez pour rechercher..."
-                        class="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
-                        oninput="filterCommunes()"
+                        id="filterCommune" 
+                        placeholder="Tapez le nom..."
+                        class="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
                     />
-                    <select id="communeSelect" size="8" class="w-full mt-2 border-2 border-gray-300 rounded-lg p-2 hidden" onchange="loadSelectedCommune()">
+                </div>
+
+                <!-- Filtre Département -->
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Département :</label>
+                    <select id="filterDept" class="w-full p-3 border-2 border-gray-300 rounded-lg">
+                        <option value="">Tous</option>
                     </select>
                 </div>
-                
-                <div id="communeResults"></div>
-            </div>
 
-            <!-- ONGLET 2 : Vue Nationale -->
-            <div id="content-national" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">🗺️ Résultats Nationaux</h2>
-                <div id="loadingNational" class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                    <p class="mt-4 text-gray-600">Chargement des données nationales...</p>
+                <!-- Filtre Parti -->
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Parti :</label>
+                    <select id="filterParti" class="w-full p-3 border-2 border-gray-300 rounded-lg">
+                        <option value="">Tous</option>
+                    </select>
                 </div>
-                <div id="nationalResults" class="hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                        <div class="bg-indigo-50 p-6 rounded-lg">
-                            <p class="text-sm text-gray-600">Communes analysées</p>
-                            <p class="text-3xl font-bold text-indigo-900" id="totalCommunes">-</p>
-                        </div>
-                        <div class="bg-indigo-50 p-6 rounded-lg">
-                            <p class="text-sm text-gray-600">Total de voix</p>
-                            <p class="text-3xl font-bold text-indigo-900" id="totalVoix">-</p>
-                        </div>
-                        <div class="bg-indigo-50 p-6 rounded-lg">
-                            <p class="text-sm text-gray-600">Élus (sièges)</p>
-                            <p class="text-3xl font-bold text-indigo-900" id="totalElus">-</p>
-                        </div>
-                    </div>
-                    <div class="mb-6">
-                        <h3 class="text-xl font-bold mb-4">📊 Répartition par parti</h3>
-                        <canvas id="nationalChart" height="80"></canvas>
-                    </div>
-                    <div>
-                        <h3 class="text-xl font-bold mb-4">📋 Tableau récapitulatif</h3>
-                        <table class="w-full">
-                            <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="text-left p-3">Parti</th>
-                                    <th class="text-right p-3">Total voix</th>
-                                    <th class="text-right p-3">% National</th>
-                                    <th class="text-right p-3">Sièges</th>
-                                </tr>
-                            </thead>
-                            <tbody id="nationalTableBody"></tbody>
-                        </table>
-                    </div>
+
+                <!-- Tri -->
+                <div>
+                    <label class="block text-sm font-semibold mb-2">Trier par :</label>
+                    <select id="filterSort" class="w-full p-3 border-2 border-gray-300 rounded-lg">
+                        <option value="pct_desc">% décroissant</option>
+                        <option value="pct_asc">% croissant</option>
+                        <option value="voix_desc">Voix décroissant</option>
+                        <option value="voix_asc">Voix croissant</option>
+                    </select>
                 </div>
             </div>
 
-            <!-- ONGLET 3 : Par Département -->
-            <div id="content-departement" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">📍 Analyse par département</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Département :</label>
-                        <select id="departementSelect" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="loadDepartement()">
-                            <option value="">Chargement...</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Trier par :</label>
-                        <select id="deptSort" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="loadDepartement()">
-                            <option value="voix">Nombre de voix</option>
-                            <option value="pct">Pourcentage (%)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div id="departementResults"></div>
-            </div>
-
-            <!-- ONGLET 4 : Classements -->
-            <div id="content-classement" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">🏆 Classements</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Département :</label>
-                        <select id="classementDept" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="loadClassement()">
-                            <option value="">Tous les départements</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Parti :</label>
-                        <select id="classementParti" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="loadClassement()">
-                            <option value="">Tous les partis</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Trier par :</label>
-                        <select id="classementSort" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="loadClassement()">
-                            <option value="pct">Pourcentage (%)</option>
-                            <option value="voix">Nombre de voix</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div id="classementResults"></div>
-            </div>
-
-            <!-- ONGLET 5 : Comparaison -->
-            <div id="content-comparaison" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">📊 Comparer des communes</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Commune 1 :</label>
-                        <input type="text" id="compare1Input" placeholder="Tapez pour rechercher..." class="w-full p-3 border-2 border-gray-300 rounded-lg mb-2" oninput="filterCompare1()">
-                        <select id="compare1Select" size="5" class="w-full border-2 border-gray-300 rounded-lg p-2 hidden"></select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold mb-2">Commune 2 :</label>
-                        <input type="text" id="compare2Input" placeholder="Tapez pour rechercher..." class="w-full p-3 border-2 border-gray-300 rounded-lg mb-2" oninput="filterCompare2()">
-                        <select id="compare2Select" size="5" class="w-full border-2 border-gray-300 rounded-lg p-2 hidden"></select>
-                    </div>
-                </div>
-                
-                <button onclick="compareCommunes()" class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 mb-6">
-                    Comparer
+            <div class="flex gap-4">
+                <button onclick="applyFilters()" class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all">
+                    🔍 Rechercher
                 </button>
-                
-                <div id="compareResults"></div>
+                <button onclick="resetFilters()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-all">
+                    🔄 Réinitialiser
+                </button>
+            </div>
+
+            <!-- Nombre de résultats -->
+            <div id="resultCount" class="mt-4 text-sm text-gray-600"></div>
+        </div>
+
+        <!-- Résultats -->
+        <div class="bg-white rounded-2xl shadow-2xl p-6">
+            <div id="loading" class="hidden text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                <p class="mt-4 text-gray-600">Chargement...</p>
+            </div>
+
+            <div id="noResults" class="hidden text-center py-8 text-gray-500">
+                <p class="text-lg">Aucun résultat trouvé. Essayez d'autres filtres.</p>
+            </div>
+
+            <div id="results" class="hidden">
+                <!-- Graphique -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-4">📊 Visualisation</h3>
+                    <canvas id="mainChart" height="80"></canvas>
+                </div>
+
+                <!-- Tableau -->
+                <div class="overflow-x-auto">
+                    <h3 class="text-xl font-bold mb-4">📋 Résultats détaillés</h3>
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="text-left p-3">#</th>
+                                <th class="text-left p-3">Commune</th>
+                                <th class="text-left p-3">Département</th>
+                                <th class="text-left p-3">Candidat</th>
+                                <th class="text-left p-3">Parti</th>
+                                <th class="text-right p-3">Voix</th>
+                                <th class="text-right p-3">%</th>
+                                <th class="text-center p-3">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -191,438 +128,239 @@
             'DVG': '#ffaacc', 'DVD': '#6699cc'
         };
 
-        let allCommunes = [];
-        let nationalChart = null;
+        let mainChart = null;
 
         function getColorByParti(parti) {
             return partyColors[parti] || '#888888';
         }
 
-        // Charger toutes les communes au démarrage
-        async function loadAllCommunes() {
+        // Charger les filtres au démarrage
+        async function loadFilters() {
             try {
-                const { data, error } = await supabase
+                console.log('Chargement des filtres...');
+                
+                // Charger TOUS les départements uniques via requête optimisée
+                const { data: allData, error: allError } = await supabase
                     .from('resultats_legislatives_2024')
-                    .select('commune_code, commune_nom, departement_code, departement_nom')
-                    .order('commune_nom');
+                    .select('departement_code, departement_nom, parti');
 
-                if (error) throw error;
+                if (allError) throw allError;
 
-                // Dédupliquer
-                const uniqueCommunes = [];
-                const seen = new Set();
-                data.forEach(d => {
-                    const key = d.commune_code;
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        uniqueCommunes.push(d);
+                console.log('Données chargées:', allData.length, 'lignes');
+
+                // Extraire départements uniques
+                const deptsMap = new Map();
+                allData.forEach(d => {
+                    if (!deptsMap.has(d.departement_code)) {
+                        deptsMap.set(d.departement_code, d.departement_nom);
                     }
                 });
 
-                allCommunes = uniqueCommunes;
-                console.log('Communes chargées:', allCommunes.length);
-            } catch (error) {
-                console.error('Erreur chargement communes:', error);
-            }
-        }
-
-        loadAllCommunes();
-
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-button').forEach(el => {
-                el.classList.remove('border-indigo-600', 'text-indigo-600');
-                el.classList.add('text-gray-600');
-            });
-            
-            document.getElementById('content-' + tabName).classList.remove('hidden');
-            document.getElementById('tab-' + tabName).classList.add('border-indigo-600', 'text-indigo-600');
-            document.getElementById('tab-' + tabName).classList.remove('text-gray-600');
-
-            if (tabName === 'national' && !document.getElementById('nationalResults').classList.contains('loaded')) {
-                loadNationalData();
-            } else if (tabName === 'departement' && document.getElementById('departementSelect').options.length === 1) {
-                loadDepartements();
-            } else if (tabName === 'classement') {
-                if (document.getElementById('classementDept').options.length === 1) loadClassementFilters();
-                loadClassement();
-            }
-        }
-
-        // ONGLET 1 : Recherche avec filtre
-        function filterCommunes() {
-            const input = document.getElementById('communeSearchInput').value.toLowerCase();
-            const select = document.getElementById('communeSelect');
-            
-            if (input.length < 2) {
-                select.classList.add('hidden');
-                return;
-            }
-
-            const filtered = allCommunes.filter(c => 
-                c.commune_nom.toLowerCase().includes(input)
-            ).slice(0, 50);
-
-            select.innerHTML = '';
-            filtered.forEach(c => {
-                const option = document.createElement('option');
-                option.value = c.commune_code;
-                option.textContent = `${c.commune_nom} (${c.departement_code})`;
-                select.appendChild(option);
-            });
-
-            select.classList.remove('hidden');
-        }
-
-        async function loadSelectedCommune() {
-            const communeCode = document.getElementById('communeSelect').value;
-            if (!communeCode) return;
-
-            const resultsDiv = document.getElementById('communeResults');
-            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
-
-            try {
-                const { data, error } = await supabase
-                    .from('resultats_legislatives_2024')
-                    .select('*')
-                    .eq('commune_code', communeCode)
-                    .order('voix', { ascending: false });
-
-                if (error) throw error;
-                displayCommuneResults(data, resultsDiv);
-            } catch (error) {
-                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
-            }
-        }
-
-        function displayCommuneResults(data, container) {
-            const commune = data[0];
-            let html = `
-                <div class="bg-indigo-50 p-6 rounded-lg mb-6">
-                    <h3 class="text-2xl font-bold text-indigo-900">${commune.commune_nom}</h3>
-                    <p class="text-indigo-700">${commune.departement_nom} (${commune.departement_code})</p>
-                </div>
-                <div class="mb-6"><canvas id="communeChart" height="100"></canvas></div>
-                <table class="w-full">
-                    <thead><tr class="bg-gray-100">
-                        <th class="text-left p-3">Candidat</th>
-                        <th class="text-left p-3">Parti</th>
-                        <th class="text-right p-3">Voix</th>
-                        <th class="text-right p-3">%</th>
-                        <th class="text-center p-3">Statut</th>
-                    </tr></thead><tbody>`;
-
-            data.forEach(c => {
-                html += `<tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 font-medium">${c.candidat_nom} ${c.candidat_prenom}</td>
-                    <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(c.parti)}">${c.parti}</span></td>
-                    <td class="p-3 text-right font-medium">${c.voix.toLocaleString()}</td>
-                    <td class="p-3 text-right font-bold">${c.pourcentage_exprimes.toFixed(2)}%</td>
-                    <td class="p-3 text-center">${c.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}</td>
-                </tr>`;
-            });
-
-            html += '</tbody></table>';
-            container.innerHTML = html;
-
-            setTimeout(() => {
-                const ctx = document.getElementById('communeChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.map(c => c.candidat_nom),
-                        datasets: [{
-                            label: 'Voix',
-                            data: data.map(c => c.voix),
-                            backgroundColor: data.map(c => getColorByParti(c.parti)),
-                            borderRadius: 8
-                        }]
-                    },
-                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-                });
-            }, 100);
-        }
-
-        // ONGLET 2 : Vue Nationale
-        async function loadNationalData() {
-            try {
-                const { data, error } = await supabase.from('resultats_legislatives_2024').select('commune_code, parti, voix, elu');
-                if (error) throw error;
-
-                const communes = new Set(data.map(d => d.commune_code));
-                const totalVoix = data.reduce((sum, d) => sum + d.voix, 0);
-                const elus = data.filter(d => d.elu).length;
-
-                document.getElementById('totalCommunes').textContent = communes.size.toLocaleString();
-                document.getElementById('totalVoix').textContent = totalVoix.toLocaleString();
-                document.getElementById('totalElus').textContent = elus;
-
-                const partiStats = {};
-                data.forEach(d => {
-                    if (!partiStats[d.parti]) partiStats[d.parti] = { voix: 0, sieges: 0 };
-                    partiStats[d.parti].voix += d.voix;
-                    if (d.elu) partiStats[d.parti].sieges++;
-                });
-
-                const sorted = Object.entries(partiStats).sort((a, b) => b[1].voix - a[1].voix);
-
-                const ctx = document.getElementById('nationalChart').getContext('2d');
-                if (nationalChart) nationalChart.destroy();
-                nationalChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: sorted.map(p => p[0]),
-                        datasets: [{ label: 'Voix', data: sorted.map(p => p[1].voix), backgroundColor: sorted.map(p => getColorByParti(p[0])), borderRadius: 8 }]
-                    },
-                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-                });
-
-                const tbody = document.getElementById('nationalTableBody');
-                tbody.innerHTML = '';
-                sorted.forEach(([parti, stats]) => {
-                    const pct = ((stats.voix / totalVoix) * 100).toFixed(2);
-                    tbody.innerHTML += `<tr class="border-b hover:bg-gray-50">
-                        <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(parti)}">${parti}</span></td>
-                        <td class="p-3 text-right font-bold">${stats.voix.toLocaleString()}</td>
-                        <td class="p-3 text-right">${pct}%</td>
-                        <td class="p-3 text-right font-bold">${stats.sieges}</td>
-                    </tr>`;
-                });
-
-                document.getElementById('loadingNational').classList.add('hidden');
-                document.getElementById('nationalResults').classList.remove('hidden');
-                document.getElementById('nationalResults').classList.add('loaded');
-            } catch (error) {
-                console.error('Erreur:', error);
-            }
-        }
-
-        // ONGLET 3 : Par Département
-        async function loadDepartements() {
-            try {
-                const depts = [...new Set(allCommunes.map(c => c.departement_code))].sort();
-                const select = document.getElementById('departementSelect');
-                select.innerHTML = '<option value="">-- Choisissez --</option>';
+                const deptSelect = document.getElementById('filterDept');
+                const sortedDepts = Array.from(deptsMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
                 
-                const deptNames = {};
-                allCommunes.forEach(c => deptNames[c.departement_code] = c.departement_nom);
+                sortedDepts.forEach(([code, nom]) => {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = `${code} - ${nom}`;
+                    deptSelect.appendChild(option);
+                });
+
+                console.log('Départements chargés:', sortedDepts.length);
+
+                // Extraire partis uniques
+                const uniquePartis = [...new Set(allData.map(p => p.parti))].filter(p => p).sort();
+                const partiSelect = document.getElementById('filterParti');
                 
-                depts.forEach(d => {
-                    select.innerHTML += `<option value="${d}">${d} - ${deptNames[d]}</option>`;
+                uniquePartis.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p;
+                    option.textContent = p;
+                    partiSelect.appendChild(option);
                 });
+
+                console.log('Partis chargés:', uniquePartis.length);
+                console.log('✅ Filtres chargés avec succès');
             } catch (error) {
-                console.error('Erreur:', error);
+                console.error('❌ Erreur chargement filtres:', error);
+                alert('Erreur lors du chargement des filtres: ' + error.message);
             }
         }
 
-        async function loadDepartement() {
-            const deptCode = document.getElementById('departementSelect').value;
-            const sortBy = document.getElementById('deptSort').value;
-            if (!deptCode) return;
+        // Appliquer les filtres
+        async function applyFilters() {
+            const commune = document.getElementById('filterCommune').value.trim();
+            const dept = document.getElementById('filterDept').value;
+            const parti = document.getElementById('filterParti').value;
+            const sort = document.getElementById('filterSort').value;
 
-            const resultsDiv = document.getElementById('departementResults');
-            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
-
-            try {
-                const { data, error } = await supabase.from('resultats_legislatives_2024').select('*').eq('departement_code', deptCode);
-                if (error) throw error;
-
-                const sorted = sortBy === 'pct' 
-                    ? [...data].sort((a, b) => b.pourcentage_exprimes - a.pourcentage_exprimes)
-                    : [...data].sort((a, b) => b.voix - a.voix);
-
-                let html = `<h3 class="text-xl font-bold mb-4">🏆 Top 20 - ${data[0].departement_nom}</h3>
-                <table class="w-full"><thead><tr class="bg-gray-100">
-                    <th class="text-left p-3">Commune</th>
-                    <th class="text-left p-3">Candidat</th>
-                    <th class="text-left p-3">Parti</th>
-                    <th class="text-right p-3">Voix</th>
-                    <th class="text-right p-3">%</th>
-                </tr></thead><tbody>`;
-
-                sorted.slice(0, 20).forEach((d, i) => {
-                    html += `<tr class="border-b hover:bg-gray-50">
-                        <td class="p-3">#${i+1} ${d.commune_nom}</td>
-                        <td class="p-3">${d.candidat_nom}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded text-white text-sm" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
-                        <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
-                        <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
-                    </tr>`;
-                });
-
-                html += '</tbody></table>';
-                resultsDiv.innerHTML = html;
-            } catch (error) {
-                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
-            }
-        }
-
-        // ONGLET 4 : Classements
-        async function loadClassementFilters() {
-            const depts = [...new Set(allCommunes.map(c => c.departement_code))].sort();
-            const deptSelect = document.getElementById('classementDept');
-            const deptNames = {};
-            allCommunes.forEach(c => deptNames[c.departement_code] = c.departement_nom);
-            depts.forEach(d => {
-                deptSelect.innerHTML += `<option value="${d}">${d} - ${deptNames[d]}</option>`;
-            });
-
-            const { data } = await supabase.from('resultats_legislatives_2024').select('parti');
-            const partis = [...new Set(data.map(d => d.parti))].sort();
-            const partiSelect = document.getElementById('classementParti');
-            partis.forEach(p => {
-                partiSelect.innerHTML += `<option value="${p}">${p}</option>`;
-            });
-        }
-
-        async function loadClassement() {
-            const dept = document.getElementById('classementDept').value;
-            const parti = document.getElementById('classementParti').value;
-            const sortBy = document.getElementById('classementSort').value;
-            
-            const resultsDiv = document.getElementById('classementResults');
-            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
+            showLoading();
+            hideNoResults();
+            hideResults();
 
             try {
+                console.log('Filtres appliqués:', { commune, dept, parti, sort });
+
                 let query = supabase.from('resultats_legislatives_2024').select('*');
-                if (dept) query = query.eq('departement_code', dept);
-                if (parti) query = query.eq('parti', parti);
-                
-                const orderCol = sortBy === 'pct' ? 'pourcentage_exprimes' : 'voix';
-                const { data, error } = await query.order(orderCol, { ascending: false }).limit(50);
+
+                if (commune) {
+                    query = query.ilike('commune_nom', `%${commune}%`);
+                }
+                if (dept) {
+                    query = query.eq('departement_code', dept);
+                }
+                if (parti) {
+                    query = query.eq('parti', parti);
+                }
+
+                // Tri
+                if (sort === 'pct_desc') {
+                    query = query.order('pourcentage_exprimes', { ascending: false });
+                } else if (sort === 'pct_asc') {
+                    query = query.order('pourcentage_exprimes', { ascending: true });
+                } else if (sort === 'voix_desc') {
+                    query = query.order('voix', { ascending: false });
+                } else if (sort === 'voix_asc') {
+                    query = query.order('voix', { ascending: true });
+                }
+
+                query = query.limit(100); // Limiter à 100 résultats
+
+                const { data, error } = await query;
+
+                hideLoading();
+
                 if (error) throw error;
 
-                let html = `<h3 class="text-xl font-bold mb-4">🏆 Top 50 ${dept ? `(${dept})` : ''} ${parti ? `(${parti})` : ''}</h3>
-                <table class="w-full"><thead><tr class="bg-gray-100">
-                    <th class="p-3 text-left">Commune</th>
-                    <th class="p-3 text-left">Candidat</th>
-                    <th class="p-3 text-left">Parti</th>
-                    <th class="p-3 text-right">Voix</th>
-                    <th class="p-3 text-right">%</th>
-                </tr></thead><tbody>`;
+                console.log('Résultats trouvés:', data.length);
 
-                data.forEach((d, i) => {
-                    html += `<tr class="border-b hover:bg-gray-50">
-                        <td class="p-3">#${i+1} ${d.commune_nom}</td>
-                        <td class="p-3">${d.candidat_nom}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded text-white text-sm" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
-                        <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
-                        <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
-                    </tr>`;
-                });
-
-                html += '</tbody></table>';
-                resultsDiv.innerHTML = html;
-            } catch (error) {
-                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
-            }
-        }
-
-        // ONGLET 5 : Comparaison avec filtres
-        function filterCompare1() {
-            filterCompareSelect('compare1Input', 'compare1Select');
-        }
-
-        function filterCompare2() {
-            filterCompareSelect('compare2Input', 'compare2Select');
-        }
-
-        function filterCompareSelect(inputId, selectId) {
-            const input = document.getElementById(inputId).value.toLowerCase();
-            const select = document.getElementById(selectId);
-            
-            if (input.length < 2) {
-                select.classList.add('hidden');
-                return;
-            }
-
-            const filtered = allCommunes.filter(c => 
-                c.commune_nom.toLowerCase().includes(input)
-            ).slice(0, 30);
-
-            select.innerHTML = '';
-            filtered.forEach(c => {
-                const option = document.createElement('option');
-                option.value = c.commune_code;
-                option.textContent = `${c.commune_nom} (${c.departement_code})`;
-                select.appendChild(option);
-            });
-
-            select.classList.remove('hidden');
-        }
-
-        async function compareCommunes() {
-            const code1 = document.getElementById('compare1Select').value;
-            const code2 = document.getElementById('compare2Select').value;
-            
-            if (!code1 || !code2) {
-                alert('Veuillez sélectionner deux communes');
-                return;
-            }
-
-            const resultsDiv = document.getElementById('compareResults');
-            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
-
-            try {
-                const { data: data1, error: error1 } = await supabase.from('resultats_legislatives_2024').select('*').eq('commune_code', code1);
-                const { data: data2, error: error2 } = await supabase.from('resultats_legislatives_2024').select('*').eq('commune_code', code2);
-
-                if (error1 || error2) throw new Error('Erreur de recherche');
-                if (!data1.length || !data2.length) {
-                    resultsDiv.innerHTML = '<p class="text-red-600">Une ou plusieurs communes introuvables.</p>';
+                if (!data || data.length === 0) {
+                    showNoResults();
                     return;
                 }
 
-                let html = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h3 class="text-xl font-bold mb-4 text-indigo-900">${data1[0].commune_nom}</h3>
-                            <p class="text-sm text-gray-600 mb-4">${data1[0].departement_nom} (${data1[0].departement_code})</p>
-                            <table class="w-full text-sm">
-                                <thead><tr class="bg-gray-100">
-                                    <th class="p-2 text-left">Candidat</th>
-                                    <th class="p-2 text-left">Parti</th>
-                                    <th class="p-2 text-right">Voix</th>
-                                    <th class="p-2 text-right">%</th>
-                                </tr></thead>
-                                <tbody>`;
-                
-                data1.forEach(d => {
-                    html += `<tr class="border-b">
-                        <td class="p-2">${d.candidat_nom}</td>
-                        <td class="p-2"><span class="px-2 py-1 rounded text-white text-xs" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
-                        <td class="p-2 text-right font-bold">${d.voix.toLocaleString()}</td>
-                        <td class="p-2 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
-                    </tr>`;
-                });
-
-                html += `</tbody></table></div><div>
-                            <h3 class="text-xl font-bold mb-4 text-indigo-900">${data2[0].commune_nom}</h3>
-                            <p class="text-sm text-gray-600 mb-4">${data2[0].departement_nom} (${data2[0].departement_code})</p>
-                            <table class="w-full text-sm">
-                                <thead><tr class="bg-gray-100">
-                                    <th class="p-2 text-left">Candidat</th>
-                                    <th class="p-2 text-left">Parti</th>
-                                    <th class="p-2 text-right">Voix</th>
-                                    <th class="p-2 text-right">%</th>
-                                </tr></thead>
-                                <tbody>`;
-
-                data2.forEach(d => {
-                    html += `<tr class="border-b">
-                        <td class="p-2">${d.candidat_nom}</td>
-                        <td class="p-2"><span class="px-2 py-1 rounded text-white text-xs" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
-                        <td class="p-2 text-right font-bold">${d.voix.toLocaleString()}</td>
-                        <td class="p-2 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
-                    </tr>`;
-                });
-
-                html += '</tbody></table></div></div>';
-                resultsDiv.innerHTML = html;
+                displayResults(data);
             } catch (error) {
-                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
+                hideLoading();
+                console.error('Erreur:', error);
+                alert('Erreur lors de la recherche: ' + error.message);
             }
         }
+
+        function displayResults(data) {
+            // Nombre de résultats
+            document.getElementById('resultCount').textContent = `${data.length} résultat(s) trouvé(s) (limité à 100)`;
+
+            // Graphique (top 20)
+            const top20 = data.slice(0, 20);
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            if (mainChart) mainChart.destroy();
+            
+            mainChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top20.map(d => `${d.candidat_nom} (${d.commune_nom})`),
+                    datasets: [{
+                        label: 'Pourcentage',
+                        data: top20.map(d => d.pourcentage_exprimes),
+                        backgroundColor: top20.map(d => getColorByParti(d.parti)),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const d = top20[context.dataIndex];
+                                    return `${d.voix.toLocaleString()} voix (${d.pourcentage_exprimes.toFixed(2)}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: '% des exprimés' }
+                        }
+                    }
+                }
+            });
+
+            // Tableau
+            const tbody = document.getElementById('resultsTableBody');
+            tbody.innerHTML = '';
+
+            data.forEach((d, index) => {
+                const row = tbody.insertRow();
+                row.className = 'border-b hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="p-3 font-semibold">#${index + 1}</td>
+                    <td class="p-3">${d.commune_nom}</td>
+                    <td class="p-3">${d.departement_code} - ${d.departement_nom}</td>
+                    <td class="p-3 font-medium">${d.candidat_nom} ${d.candidat_prenom}</td>
+                    <td class="p-3">
+                        <span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(d.parti)}">
+                            ${d.parti}
+                        </span>
+                    </td>
+                    <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
+                    <td class="p-3 text-right font-bold text-indigo-600">${d.pourcentage_exprimes.toFixed(2)}%</td>
+                    <td class="p-3 text-center">
+                        ${d.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}
+                    </td>
+                `;
+            });
+
+            showResults();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterCommune').value = '';
+            document.getElementById('filterDept').value = '';
+            document.getElementById('filterParti').value = '';
+            document.getElementById('filterSort').value = 'pct_desc';
+            hideResults();
+            hideNoResults();
+            document.getElementById('resultCount').textContent = '';
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function showNoResults() {
+            document.getElementById('noResults').classList.remove('hidden');
+        }
+
+        function hideNoResults() {
+            document.getElementById('noResults').classList.add('hidden');
+        }
+
+        function showResults() {
+            document.getElementById('results').classList.remove('hidden');
+        }
+
+        function hideResults() {
+            document.getElementById('results').classList.add('hidden');
+        }
+
+        // Recherche au clavier Enter
+        document.getElementById('filterCommune').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyFilters();
+            }
+        });
+
+        // Initialisation
+        loadFilters();
     </script>
 </body>
 </html>
