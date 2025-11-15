@@ -13,101 +13,148 @@
         <!-- En-tête -->
         <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">🗳️ Élections Législatives 2024</h1>
-            <p class="text-gray-600">Tableau de bord unifié - 2ème tour</p>
+            <p class="text-gray-600">Résultats du 2ème tour - 31 391 communes</p>
         </div>
 
         <!-- Panneau de filtres -->
         <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
-            <h2 class="text-2xl font-bold mb-4">🔍 Filtres</h2>
+            <h2 class="text-2xl font-bold mb-4">🔍 Recherche</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <!-- Filtre Commune -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <!-- Recherche par Commune -->
                 <div>
-                    <label class="block text-sm font-semibold mb-2">Commune :</label>
+                    <label class="block text-sm font-semibold mb-2">🏘️ Rechercher une commune :</label>
                     <input 
                         type="text" 
-                        id="filterCommune" 
-                        placeholder="Tapez le nom..."
+                        id="communeSearch" 
+                        placeholder="Ex: Moulins, Paris, Marseille..."
                         class="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+                        oninput="searchCommune()"
                     />
-                </div>
-
-                <!-- Filtre Département -->
-                <div>
-                    <label class="block text-sm font-semibold mb-2">Département :</label>
-                    <select id="filterDept" class="w-full p-3 border-2 border-gray-300 rounded-lg">
-                        <option value="">Tous</option>
+                    <select id="communeList" size="6" class="w-full mt-2 border-2 border-gray-300 rounded-lg p-2 hidden" onchange="selectCommune()">
                     </select>
                 </div>
 
-                <!-- Filtre Parti -->
+                <!-- Recherche par Département -->
                 <div>
-                    <label class="block text-sm font-semibold mb-2">Parti :</label>
-                    <select id="filterParti" class="w-full p-3 border-2 border-gray-300 rounded-lg">
-                        <option value="">Tous</option>
+                    <label class="block text-sm font-semibold mb-2">📍 Sélectionner un département :</label>
+                    <select id="deptSelect" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="selectDepartement()">
+                        <option value="">-- Choisissez un département --</option>
                     </select>
-                </div>
-
-                <!-- Tri -->
-                <div>
-                    <label class="block text-sm font-semibold mb-2">Trier par :</label>
-                    <select id="filterSort" class="w-full p-3 border-2 border-gray-300 rounded-lg">
-                        <option value="pct_desc">% décroissant</option>
-                        <option value="pct_asc">% croissant</option>
-                        <option value="voix_desc">Voix décroissant</option>
-                        <option value="voix_asc">Voix croissant</option>
-                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Voir les résultats globaux + top communes</p>
                 </div>
             </div>
 
-            <div class="flex gap-4">
-                <button onclick="applyFilters()" class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all">
-                    🔍 Rechercher
-                </button>
-                <button onclick="resetFilters()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-all">
-                    🔄 Réinitialiser
-                </button>
-            </div>
-
-            <!-- Nombre de résultats -->
-            <div id="resultCount" class="mt-4 text-sm text-gray-600"></div>
+            <button onclick="resetView()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-400 transition-all">
+                🔄 Réinitialiser
+            </button>
         </div>
 
-        <!-- Résultats -->
-        <div class="bg-white rounded-2xl shadow-2xl p-6">
-            <div id="loading" class="hidden text-center py-8">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                <p class="mt-4 text-gray-600">Chargement...</p>
-            </div>
+        <!-- Zone de résultats -->
+        <div id="loadingZone" class="hidden bg-white rounded-2xl shadow-2xl p-8 text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <p class="mt-4 text-gray-600">Chargement...</p>
+        </div>
 
-            <div id="noResults" class="hidden text-center py-8 text-gray-500">
-                <p class="text-lg">Aucun résultat trouvé. Essayez d'autres filtres.</p>
-            </div>
-
-            <div id="results" class="hidden">
-                <!-- Graphique -->
-                <div class="mb-6">
-                    <h3 class="text-xl font-bold mb-4">📊 Visualisation</h3>
-                    <canvas id="mainChart" height="80"></canvas>
+        <!-- VUE DÉPARTEMENT -->
+        <div id="departementView" class="hidden">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4" id="deptTitle"></h2>
+                
+                <!-- Statistiques globales -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-indigo-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-600">Communes</p>
+                        <p class="text-2xl font-bold text-indigo-900" id="deptCommunes">-</p>
+                    </div>
+                    <div class="bg-indigo-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-600">Total voix</p>
+                        <p class="text-2xl font-bold text-indigo-900" id="deptVoix">-</p>
+                    </div>
+                    <div class="bg-indigo-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-600">Inscrits</p>
+                        <p class="text-2xl font-bold text-indigo-900" id="deptInscrits">-</p>
+                    </div>
+                    <div class="bg-indigo-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-600">Sièges</p>
+                        <p class="text-2xl font-bold text-indigo-900" id="deptSieges">-</p>
+                    </div>
                 </div>
 
-                <!-- Tableau -->
-                <div class="overflow-x-auto">
-                    <h3 class="text-xl font-bold mb-4">📋 Résultats détaillés</h3>
+                <!-- Graphique départemental -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-4">📊 Répartition par parti dans le département</h3>
+                    <canvas id="deptChart" height="80"></canvas>
+                </div>
+
+                <!-- Tableau récapitulatif -->
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-4">📋 Résumé par parti</h3>
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="text-left p-3">Parti</th>
+                                <th class="text-right p-3">Voix totales</th>
+                                <th class="text-right p-3">% du département</th>
+                                <th class="text-right p-3">Sièges gagnés</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptTableBody"></tbody>
+                    </table>
+                </div>
+
+                <!-- Top 20 communes -->
+                <div>
+                    <h3 class="text-xl font-bold mb-4">🏆 Top 20 des communes (par % de voix)</h3>
+                    <p class="text-sm text-gray-600 mb-4">Cliquez sur une commune pour voir le détail</p>
                     <table class="w-full">
                         <thead>
                             <tr class="bg-gray-100">
                                 <th class="text-left p-3">#</th>
                                 <th class="text-left p-3">Commune</th>
-                                <th class="text-left p-3">Département</th>
                                 <th class="text-left p-3">Candidat</th>
                                 <th class="text-left p-3">Parti</th>
                                 <th class="text-right p-3">Voix</th>
                                 <th class="text-right p-3">%</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptTopBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VUE COMMUNE -->
+        <div id="communeView" class="hidden">
+            <div class="bg-white rounded-2xl shadow-2xl p-6">
+                <button onclick="backToDept()" class="mb-4 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 text-sm">
+                    ← Retour au département
+                </button>
+                
+                <div class="bg-indigo-50 p-6 rounded-lg mb-6">
+                    <h2 class="text-3xl font-bold text-indigo-900" id="communeTitle"></h2>
+                    <p class="text-indigo-700" id="communeInfo"></p>
+                </div>
+
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold mb-4">📊 Résultats</h3>
+                    <canvas id="communeChart" height="100"></canvas>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-bold mb-4">📋 Détail des candidats</h3>
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="text-left p-3">Candidat</th>
+                                <th class="text-left p-3">Parti</th>
+                                <th class="text-right p-3">Voix</th>
+                                <th class="text-right p-3">% Inscrits</th>
+                                <th class="text-right p-3">% Exprimés</th>
                                 <th class="text-center p-3">Statut</th>
                             </tr>
                         </thead>
-                        <tbody id="resultsTableBody"></tbody>
+                        <tbody id="communeTableBody"></tbody>
                     </table>
                 </div>
             </div>
@@ -128,239 +175,335 @@
             'DVG': '#ffaacc', 'DVD': '#6699cc'
         };
 
-        let mainChart = null;
+        let allCommunes = [];
+        let currentDeptCode = null;
+        let deptChart = null;
+        let communeChart = null;
 
         function getColorByParti(parti) {
             return partyColors[parti] || '#888888';
         }
 
-        // Charger les filtres au démarrage
-        async function loadFilters() {
-            try {
-                console.log('Chargement des filtres...');
-                
-                // Charger TOUS les départements uniques via requête optimisée
-                const { data: allData, error: allError } = await supabase
-                    .from('resultats_legislatives_2024')
-                    .select('departement_code, departement_nom, parti');
-
-                if (allError) throw allError;
-
-                console.log('Données chargées:', allData.length, 'lignes');
-
-                // Extraire départements uniques
-                const deptsMap = new Map();
-                allData.forEach(d => {
-                    if (!deptsMap.has(d.departement_code)) {
-                        deptsMap.set(d.departement_code, d.departement_nom);
-                    }
-                });
-
-                const deptSelect = document.getElementById('filterDept');
-                const sortedDepts = Array.from(deptsMap.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-                
-                sortedDepts.forEach(([code, nom]) => {
-                    const option = document.createElement('option');
-                    option.value = code;
-                    option.textContent = `${code} - ${nom}`;
-                    deptSelect.appendChild(option);
-                });
-
-                console.log('Départements chargés:', sortedDepts.length);
-
-                // Extraire partis uniques
-                const uniquePartis = [...new Set(allData.map(p => p.parti))].filter(p => p).sort();
-                const partiSelect = document.getElementById('filterParti');
-                
-                uniquePartis.forEach(p => {
-                    const option = document.createElement('option');
-                    option.value = p;
-                    option.textContent = p;
-                    partiSelect.appendChild(option);
-                });
-
-                console.log('Partis chargés:', uniquePartis.length);
-                console.log('✅ Filtres chargés avec succès');
-            } catch (error) {
-                console.error('❌ Erreur chargement filtres:', error);
-                alert('Erreur lors du chargement des filtres: ' + error.message);
-            }
+        // Charger les listes au démarrage
+        async function init() {
+            console.log('Initialisation...');
+            await loadDepartements();
+            await loadAllCommunes();
         }
 
-        // Appliquer les filtres
-        async function applyFilters() {
-            const commune = document.getElementById('filterCommune').value.trim();
-            const dept = document.getElementById('filterDept').value;
-            const parti = document.getElementById('filterParti').value;
-            const sort = document.getElementById('filterSort').value;
-
-            showLoading();
-            hideNoResults();
-            hideResults();
-
+        async function loadDepartements() {
             try {
-                console.log('Filtres appliqués:', { commune, dept, parti, sort });
-
-                let query = supabase.from('resultats_legislatives_2024').select('*');
-
-                if (commune) {
-                    query = query.ilike('commune_nom', `%${commune}%`);
-                }
-                if (dept) {
-                    query = query.eq('departement_code', dept);
-                }
-                if (parti) {
-                    query = query.eq('parti', parti);
-                }
-
-                // Tri
-                if (sort === 'pct_desc') {
-                    query = query.order('pourcentage_exprimes', { ascending: false });
-                } else if (sort === 'pct_asc') {
-                    query = query.order('pourcentage_exprimes', { ascending: true });
-                } else if (sort === 'voix_desc') {
-                    query = query.order('voix', { ascending: false });
-                } else if (sort === 'voix_asc') {
-                    query = query.order('voix', { ascending: true });
-                }
-
-                query = query.limit(100); // Limiter à 100 résultats
-
-                const { data, error } = await query;
-
-                hideLoading();
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('departement_code, departement_nom');
 
                 if (error) throw error;
 
-                console.log('Résultats trouvés:', data.length);
+                const depts = new Map();
+                data.forEach(d => depts.set(d.departement_code, d.departement_nom));
 
-                if (!data || data.length === 0) {
-                    showNoResults();
-                    return;
-                }
+                const select = document.getElementById('deptSelect');
+                const sorted = Array.from(depts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+                
+                sorted.forEach(([code, nom]) => {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = `${code} - ${nom}`;
+                    select.appendChild(option);
+                });
 
-                displayResults(data);
+                console.log('✅ Départements chargés:', depts.size);
             } catch (error) {
-                hideLoading();
                 console.error('Erreur:', error);
-                alert('Erreur lors de la recherche: ' + error.message);
             }
         }
 
-        function displayResults(data) {
-            // Nombre de résultats
-            document.getElementById('resultCount').textContent = `${data.length} résultat(s) trouvé(s) (limité à 100)`;
+        async function loadAllCommunes() {
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('commune_code, commune_nom, departement_code, departement_nom');
 
-            // Graphique (top 20)
-            const top20 = data.slice(0, 20);
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            
-            if (mainChart) mainChart.destroy();
-            
-            mainChart = new Chart(ctx, {
-                type: 'bar',
+                if (error) throw error;
+
+                const communes = new Map();
+                data.forEach(d => {
+                    if (!communes.has(d.commune_code)) {
+                        communes.set(d.commune_code, {
+                            code: d.commune_code,
+                            nom: d.commune_nom,
+                            dept: d.departement_code,
+                            deptNom: d.departement_nom
+                        });
+                    }
+                });
+
+                allCommunes = Array.from(communes.values());
+                console.log('✅ Communes chargées:', allCommunes.length);
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Recherche commune avec autocomplete
+        function searchCommune() {
+            const input = document.getElementById('communeSearch').value.trim().toLowerCase();
+            const list = document.getElementById('communeList');
+
+            if (input.length < 2) {
+                list.classList.add('hidden');
+                return;
+            }
+
+            // Filtrer : commence par OU contient le mot
+            const filtered = allCommunes.filter(c => {
+                const nom = c.nom.toLowerCase();
+                return nom.startsWith(input) || nom.split(/[\s-]/).some(word => word.startsWith(input));
+            }).slice(0, 50);
+
+            list.innerHTML = '';
+            filtered.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.code;
+                option.textContent = `${c.nom} (${c.dept})`;
+                list.appendChild(option);
+            });
+
+            list.classList.remove('hidden');
+        }
+
+        async function selectCommune() {
+            const code = document.getElementById('communeList').value;
+            if (!code) return;
+
+            showLoading();
+            hideAllViews();
+
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('*')
+                    .eq('commune_code', code)
+                    .order('voix', { ascending: false });
+
+                if (error) throw error;
+
+                currentDeptCode = data[0].departement_code;
+                displayCommune(data);
+                hideLoading();
+            } catch (error) {
+                console.error('Erreur:', error);
+                hideLoading();
+            }
+        }
+
+        async function selectDepartement() {
+            const code = document.getElementById('deptSelect').value;
+            if (!code) return;
+
+            currentDeptCode = code;
+            showLoading();
+            hideAllViews();
+
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('*')
+                    .eq('departement_code', code);
+
+                if (error) throw error;
+
+                displayDepartement(data);
+                hideLoading();
+            } catch (error) {
+                console.error('Erreur:', error);
+                hideLoading();
+            }
+        }
+
+        function displayDepartement(data) {
+            const deptNom = data[0].departement_nom;
+            document.getElementById('deptTitle').textContent = `📍 ${data[0].departement_code} - ${deptNom}`;
+
+            // Statistiques
+            const communes = new Set(data.map(d => d.commune_code));
+            const totalVoix = data.reduce((sum, d) => sum + d.voix, 0);
+            const sieges = data.filter(d => d.elu).length;
+
+            document.getElementById('deptCommunes').textContent = communes.size;
+            document.getElementById('deptVoix').textContent = totalVoix.toLocaleString();
+            document.getElementById('deptInscrits').textContent = '-'; // Besoin calcul
+            document.getElementById('deptSieges').textContent = sieges;
+
+            // Agrégation par parti
+            const partiStats = {};
+            data.forEach(d => {
+                if (!partiStats[d.parti]) {
+                    partiStats[d.parti] = { voix: 0, sieges: 0 };
+                }
+                partiStats[d.parti].voix += d.voix;
+                if (d.elu) partiStats[d.parti].sieges++;
+            });
+
+            const sorted = Object.entries(partiStats).sort((a, b) => b[1].voix - a[1].voix);
+
+            // Graphique
+            const ctx = document.getElementById('deptChart').getContext('2d');
+            if (deptChart) deptChart.destroy();
+            deptChart = new Chart(ctx, {
+                type: 'pie',
                 data: {
-                    labels: top20.map(d => `${d.candidat_nom} (${d.commune_nom})`),
+                    labels: sorted.map(p => p[0]),
                     datasets: [{
-                        label: 'Pourcentage',
-                        data: top20.map(d => d.pourcentage_exprimes),
-                        backgroundColor: top20.map(d => getColorByParti(d.parti)),
-                        borderRadius: 8
+                        data: sorted.map(p => p[1].voix),
+                        backgroundColor: sorted.map(p => getColorByParti(p[0]))
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const d = top20[context.dataIndex];
-                                    return `${d.voix.toLocaleString()} voix (${d.pourcentage_exprimes.toFixed(2)}%)`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: '% des exprimés' }
-                        }
+                        legend: { position: 'right' }
                     }
                 }
             });
 
-            // Tableau
-            const tbody = document.getElementById('resultsTableBody');
+            // Tableau récap
+            const tbody = document.getElementById('deptTableBody');
             tbody.innerHTML = '';
-
-            data.forEach((d, index) => {
-                const row = tbody.insertRow();
-                row.className = 'border-b hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="p-3 font-semibold">#${index + 1}</td>
-                    <td class="p-3">${d.commune_nom}</td>
-                    <td class="p-3">${d.departement_code} - ${d.departement_nom}</td>
-                    <td class="p-3 font-medium">${d.candidat_nom} ${d.candidat_prenom}</td>
-                    <td class="p-3">
-                        <span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(d.parti)}">
-                            ${d.parti}
-                        </span>
-                    </td>
-                    <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
-                    <td class="p-3 text-right font-bold text-indigo-600">${d.pourcentage_exprimes.toFixed(2)}%</td>
-                    <td class="p-3 text-center">
-                        ${d.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}
-                    </td>
-                `;
+            sorted.forEach(([parti, stats]) => {
+                const pct = ((stats.voix / totalVoix) * 100).toFixed(2);
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(parti)}">${parti}</span></td>
+                        <td class="p-3 text-right font-bold">${stats.voix.toLocaleString()}</td>
+                        <td class="p-3 text-right">${pct}%</td>
+                        <td class="p-3 text-right font-bold">${stats.sieges}</td>
+                    </tr>`;
             });
 
-            showResults();
+            // Top 20
+            const top20 = [...data].sort((a, b) => b.pourcentage_exprimes - a.pourcentage_exprimes).slice(0, 20);
+            const topBody = document.getElementById('deptTopBody');
+            topBody.innerHTML = '';
+            top20.forEach((d, i) => {
+                topBody.innerHTML += `
+                    <tr class="border-b hover:bg-indigo-50 cursor-pointer" onclick="loadCommuneByCode('${d.commune_code}')">
+                        <td class="p-3">#${i + 1}</td>
+                        <td class="p-3 font-semibold text-indigo-600">${d.commune_nom}</td>
+                        <td class="p-3">${d.candidat_nom}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded text-white text-sm" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
+                        <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
+                        <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
+                    </tr>`;
+            });
+
+            document.getElementById('departementView').classList.remove('hidden');
         }
 
-        function resetFilters() {
-            document.getElementById('filterCommune').value = '';
-            document.getElementById('filterDept').value = '';
-            document.getElementById('filterParti').value = '';
-            document.getElementById('filterSort').value = 'pct_desc';
-            hideResults();
-            hideNoResults();
-            document.getElementById('resultCount').textContent = '';
+        async function loadCommuneByCode(code) {
+            showLoading();
+            hideAllViews();
+
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('*')
+                    .eq('commune_code', code)
+                    .order('voix', { ascending: false });
+
+                if (error) throw error;
+
+                displayCommune(data);
+                hideLoading();
+            } catch (error) {
+                console.error('Erreur:', error);
+                hideLoading();
+            }
+        }
+
+        function displayCommune(data) {
+            const commune = data[0];
+            document.getElementById('communeTitle').textContent = commune.commune_nom;
+            document.getElementById('communeInfo').textContent = `${commune.departement_nom} (${commune.departement_code})`;
+
+            // Graphique
+            const ctx = document.getElementById('communeChart').getContext('2d');
+            if (communeChart) communeChart.destroy();
+            communeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.candidat_nom),
+                    datasets: [{
+                        label: 'Voix',
+                        data: data.map(d => d.voix),
+                        backgroundColor: data.map(d => getColorByParti(d.parti)),
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // Tableau
+            const tbody = document.getElementById('communeTableBody');
+            tbody.innerHTML = '';
+            data.forEach(d => {
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-3 font-medium">${d.candidat_nom} ${d.candidat_prenom}</td>
+                        <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
+                        <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
+                        <td class="p-3 text-right">${d.pourcentage_inscrits.toFixed(2)}%</td>
+                        <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
+                        <td class="p-3 text-center">${d.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}</td>
+                    </tr>`;
+            });
+
+            document.getElementById('communeView').classList.remove('hidden');
+        }
+
+        function backToDept() {
+            if (currentDeptCode) {
+                document.getElementById('deptSelect').value = currentDeptCode;
+                selectDepartement();
+            }
+        }
+
+        function resetView() {
+            document.getElementById('communeSearch').value = '';
+            document.getElementById('deptSelect').value = '';
+            document.getElementById('communeList').classList.add('hidden');
+            hideAllViews();
         }
 
         function showLoading() {
-            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('loadingZone').classList.remove('hidden');
         }
 
         function hideLoading() {
-            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('loadingZone').classList.add('hidden');
         }
 
-        function showNoResults() {
-            document.getElementById('noResults').classList.remove('hidden');
+        function hideAllViews() {
+            document.getElementById('departementView').classList.add('hidden');
+            document.getElementById('communeView').classList.add('hidden');
         }
 
-        function hideNoResults() {
-            document.getElementById('noResults').classList.add('hidden');
-        }
-
-        function showResults() {
-            document.getElementById('results').classList.remove('hidden');
-        }
-
-        function hideResults() {
-            document.getElementById('results').classList.add('hidden');
-        }
-
-        // Recherche au clavier Enter
-        document.getElementById('filterCommune').addEventListener('keypress', function(e) {
+        // Recherche au clavier
+        document.getElementById('communeSearch').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                applyFilters();
+                const list = document.getElementById('communeList');
+                if (list.options.length > 0) {
+                    list.selectedIndex = 0;
+                    selectCommune();
+                }
             }
         });
 
-        // Initialisation
-        loadFilters();
+        init();
     </script>
 </body>
 </html>
