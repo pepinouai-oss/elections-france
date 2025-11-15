@@ -3,279 +3,514 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Résultats Électoraux France - Toutes Communes</title>
+    <title>Tableau de Bord Élections France 2024</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-6">
-    <div class="max-w-6xl mx-auto">
-        <div class="bg-white rounded-2xl shadow-2xl p-8">
-            <!-- En-tête -->
-            <div class="mb-8">
-                <h1 class="text-4xl font-bold text-gray-800 mb-2 flex items-center gap-3">
-                    🗳️ Résultats Électoraux - France
-                </h1>
-                <p class="text-gray-600">Élections Législatives 2024 - Toutes les communes de France</p>
-            </div>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- En-tête -->
+        <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">🗳️ Élections Législatives 2024</h1>
+            <p class="text-gray-600">Tableau de bord interactif - Toutes les communes de France - 2ème tour</p>
+        </div>
 
-            <!-- Recherche -->
-            <div class="mb-8">
-                <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    🔍 Rechercher une commune
-                </label>
-                <div class="flex gap-4">
+        <!-- Navigation par onglets -->
+        <div class="bg-white rounded-2xl shadow-2xl mb-6">
+            <div class="flex border-b overflow-x-auto">
+                <button onclick="showTab('commune')" id="tab-commune" class="tab-button px-6 py-4 font-semibold border-b-2 border-indigo-600 text-indigo-600">
+                    🔍 Recherche Commune
+                </button>
+                <button onclick="showTab('national')" id="tab-national" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
+                    🗺️ Vue Nationale
+                </button>
+                <button onclick="showTab('departement')" id="tab-departement" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
+                    📍 Par Département
+                </button>
+                <button onclick="showTab('classement')" id="tab-classement" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
+                    🏆 Classements
+                </button>
+                <button onclick="showTab('comparaison')" id="tab-comparaison" class="tab-button px-6 py-4 font-semibold text-gray-600 hover:text-indigo-600">
+                    📊 Comparaison
+                </button>
+            </div>
+        </div>
+
+        <!-- Contenu des onglets -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <!-- ONGLET 1 : Recherche Commune -->
+            <div id="content-commune" class="tab-content">
+                <h2 class="text-2xl font-bold mb-6">🔍 Rechercher une commune</h2>
+                <div class="flex gap-4 mb-6">
                     <input 
                         type="text" 
                         id="communeSearch" 
                         placeholder="Ex: Monistrol-sur-Loire, Paris, Marseille..."
-                        class="flex-1 p-4 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none text-lg"
+                        class="flex-1 p-4 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
                     />
-                    <button 
-                        onclick="searchCommune()" 
-                        class="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-all"
-                    >
+                    <button onclick="searchCommune()" class="px-8 py-4 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700">
                         Rechercher
                     </button>
                 </div>
-                <div id="suggestions" class="mt-2"></div>
+                
+                <div id="communeResults"></div>
             </div>
 
-            <!-- Résultats -->
-            <div id="loading" class="hidden text-center py-8">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-                <p class="mt-4 text-gray-600">Recherche en cours...</p>
-            </div>
-
-            <div id="error" class="hidden bg-red-50 border-l-4 border-red-400 p-4 rounded mb-6">
-                <p class="text-red-800"></p>
-            </div>
-
-            <div id="results" class="hidden">
-                <!-- Info commune -->
-                <div class="bg-indigo-50 rounded-xl p-6 mb-6">
-                    <h2 class="text-2xl font-bold text-indigo-900 mb-2" id="communeName"></h2>
-                    <p class="text-indigo-700" id="departmentInfo"></p>
+            <!-- ONGLET 2 : Vue Nationale -->
+            <div id="content-national" class="tab-content hidden">
+                <h2 class="text-2xl font-bold mb-6">🗺️ Résultats Nationaux</h2>
+                <div id="loadingNational" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    <p class="mt-4 text-gray-600">Chargement des données nationales...</p>
                 </div>
-
-                <!-- Graphique -->
-                <div class="mb-8">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">📊 Résultats</h3>
-                    <canvas id="resultsChart" height="100"></canvas>
-                </div>
-
-                <!-- Tableau -->
-                <div class="overflow-x-auto">
-                    <h3 class="text-xl font-bold text-gray-800 mb-4">📋 Détail des candidats</h3>
-                    <table class="w-full">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="text-left p-3 font-semibold">Candidat</th>
-                                <th class="text-left p-3 font-semibold">Parti</th>
-                                <th class="text-right p-3 font-semibold">Voix</th>
-                                <th class="text-right p-3 font-semibold">% Exprimés</th>
-                                <th class="text-center p-3 font-semibold">Statut</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultsTableBody"></tbody>
-                    </table>
+                <div id="nationalResults" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-indigo-50 p-6 rounded-lg">
+                            <p class="text-sm text-gray-600">Communes analysées</p>
+                            <p class="text-3xl font-bold text-indigo-900" id="totalCommunes">-</p>
+                        </div>
+                        <div class="bg-indigo-50 p-6 rounded-lg">
+                            <p class="text-sm text-gray-600">Total de voix</p>
+                            <p class="text-3xl font-bold text-indigo-900" id="totalVoix">-</p>
+                        </div>
+                        <div class="bg-indigo-50 p-6 rounded-lg">
+                            <p class="text-sm text-gray-600">Candidats</p>
+                            <p class="text-3xl font-bold text-indigo-900" id="totalCandidats">-</p>
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold mb-4">📊 Répartition par parti (au niveau national)</h3>
+                        <canvas id="nationalChart" height="80"></canvas>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold mb-4">📋 Tableau récapitulatif par parti</h3>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="text-left p-3">Parti</th>
+                                    <th class="text-right p-3">Total voix</th>
+                                    <th class="text-right p-3">% National</th>
+                                    <th class="text-right p-3">Sièges gagnés</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nationalTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- Message initial -->
-            <div id="welcome" class="text-center py-12">
-                <p class="text-gray-500 text-lg">👆 Entrez le nom d'une commune pour voir les résultats des législatives 2024</p>
+            <!-- ONGLET 3 : Par Département -->
+            <div id="content-departement" class="tab-content hidden">
+                <h2 class="text-2xl font-bold mb-6">📍 Analyse par département</h2>
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold mb-2">Sélectionnez un département :</label>
+                    <select id="departementSelect" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="loadDepartement()">
+                        <option value="">Chargement...</option>
+                    </select>
+                </div>
+                <div id="departementResults"></div>
+            </div>
+
+            <!-- ONGLET 4 : Classements -->
+            <div id="content-classement" class="tab-content hidden">
+                <h2 class="text-2xl font-bold mb-6">🏆 Classements</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold mb-2">Filtrer par :</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select id="classementType" class="p-3 border-2 border-gray-300 rounded-lg" onchange="loadClassement()">
+                            <option value="candidat">Par candidat</option>
+                            <option value="parti">Par parti</option>
+                        </select>
+                        <select id="classementParti" class="p-3 border-2 border-gray-300 rounded-lg" onchange="loadClassement()">
+                            <option value="">Tous les partis</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="classementResults"></div>
+            </div>
+
+            <!-- ONGLET 5 : Comparaison -->
+            <div id="content-comparaison" class="tab-content hidden">
+                <h2 class="text-2xl font-bold mb-6">📊 Comparer des communes</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Commune 1 :</label>
+                        <input type="text" id="compare1" placeholder="Ex: Paris" class="w-full p-3 border-2 border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Commune 2 :</label>
+                        <input type="text" id="compare2" placeholder="Ex: Marseille" class="w-full p-3 border-2 border-gray-300 rounded-lg">
+                    </div>
+                </div>
+                
+                <button onclick="compareCommunes()" class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 mb-6">
+                    Comparer
+                </button>
+                
+                <div id="compareResults"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuration Supabase
         const SUPABASE_URL = 'https://iflgdihwmmsaqtzhiyuz.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlmbGdkaWh3bW1zYXF0emhpeXV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI4MzUyMDQsImV4cCI6MjA3ODQxMTIwNH0.Y5zCvLQ4l3uJFWjZ_AH0L3HN8mrdPflOg1sZT5MPgmM';
-        
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let chart = null;
 
         const partyColors = {
-            'RN': '#0d378a',
-            'FN': '#0d378a',
-            'ENS': '#ffeb3b',
-            'Ensemble': '#ffeb3b',
-            'LREM': '#ffeb3b',
-            'LR': '#0066cc',
-            'UMP': '#0066cc',
-            'UG': '#ff4444',
-            'NFP': '#ff4444',
-            'NUPES': '#ff4444',
-            'PS': '#ff8fab',
-            'PCF': '#dd0000',
-            'DVG': '#ffaacc',
-            'DVD': '#6699cc'
+            'RN': '#0d378a', 'FN': '#0d378a',
+            'ENS': '#ffeb3b', 'Ensemble': '#ffeb3b', 'LREM': '#ffeb3b',
+            'LR': '#0066cc', 'UMP': '#0066cc',
+            'UG': '#ff4444', 'NFP': '#ff4444', 'NUPES': '#ff4444',
+            'PS': '#ff8fab', 'PCF': '#dd0000',
+            'DVG': '#ffaacc', 'DVD': '#6699cc'
         };
+
+        let nationalChart = null;
 
         function getColorByParti(parti) {
             return partyColors[parti] || '#888888';
         }
 
-        // Recherche avec Entrée
-        document.getElementById('communeSearch').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                searchCommune();
+        // Gestion des onglets
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-button').forEach(el => {
+                el.classList.remove('border-indigo-600', 'text-indigo-600');
+                el.classList.add('text-gray-600');
+            });
+            
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            document.getElementById('tab-' + tabName).classList.add('border-indigo-600', 'text-indigo-600');
+            document.getElementById('tab-' + tabName).classList.remove('text-gray-600');
+
+            // Charger les données selon l'onglet
+            if (tabName === 'national' && !document.getElementById('nationalResults').classList.contains('loaded')) {
+                loadNationalData();
+            } else if (tabName === 'departement' && document.getElementById('departementSelect').options.length === 1) {
+                loadDepartements();
+            } else if (tabName === 'classement') {
+                loadClassementPartis();
+                loadClassement();
             }
+        }
+
+        // ONGLET 1 : Recherche Commune
+        document.getElementById('communeSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchCommune();
         });
 
         async function searchCommune() {
             const searchTerm = document.getElementById('communeSearch').value.trim();
-            
-            if (!searchTerm) {
-                showError('Veuillez entrer un nom de commune');
-                return;
-            }
+            if (!searchTerm) return;
 
-            showLoading();
-            hideError();
-            hideWelcome();
-            hideResults();
+            const resultsDiv = document.getElementById('communeResults');
+            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
 
             try {
-                // Recherche dans Supabase (insensible à la casse)
                 const { data, error } = await supabase
                     .from('resultats_legislatives_2024')
                     .select('*')
                     .ilike('commune_nom', `%${searchTerm}%`)
                     .order('voix', { ascending: false });
 
-                hideLoading();
-
                 if (error) throw error;
-
                 if (!data || data.length === 0) {
-                    showError(`Aucune commune trouvée pour "${searchTerm}". Vérifiez l'orthographe.`);
+                    resultsDiv.innerHTML = '<p class="text-red-600">Aucune commune trouvée.</p>';
                     return;
                 }
 
-                // Afficher les résultats
-                displayResults(data);
+                displayCommuneResults(data, resultsDiv);
+            } catch (error) {
+                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
+            }
+        }
+
+        function displayCommuneResults(data, container) {
+            const commune = data[0];
+            let html = `
+                <div class="bg-indigo-50 p-6 rounded-lg mb-6">
+                    <h3 class="text-2xl font-bold text-indigo-900">${commune.commune_nom}</h3>
+                    <p class="text-indigo-700">${commune.departement_nom} (${commune.departement_code})</p>
+                </div>
+                <div class="mb-6">
+                    <canvas id="communeChart" height="100"></canvas>
+                </div>
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="text-left p-3">Candidat</th>
+                            <th class="text-left p-3">Parti</th>
+                            <th class="text-right p-3">Voix</th>
+                            <th class="text-right p-3">%</th>
+                            <th class="text-center p-3">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+            data.forEach(c => {
+                html += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-3 font-medium">${c.candidat_nom} ${c.candidat_prenom}</td>
+                        <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(c.parti)}">${c.parti}</span></td>
+                        <td class="p-3 text-right font-medium">${c.voix.toLocaleString()}</td>
+                        <td class="p-3 text-right font-bold">${c.pourcentage_exprimes.toFixed(2)}%</td>
+                        <td class="p-3 text-center">${c.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}</td>
+                    </tr>`;
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            // Graphique
+            setTimeout(() => {
+                const ctx = document.getElementById('communeChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(c => c.candidat_nom),
+                        datasets: [{
+                            label: 'Voix',
+                            data: data.map(c => c.voix),
+                            backgroundColor: data.map(c => getColorByParti(c.parti)),
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }, 100);
+        }
+
+        // ONGLET 2 : Vue Nationale
+        async function loadNationalData() {
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('*');
+
+                if (error) throw error;
+
+                // Statistiques
+                const communes = [...new Set(data.map(d => d.commune_code))];
+                const totalVoix = data.reduce((sum, d) => sum + d.voix, 0);
+                const candidats = [...new Set(data.map(d => d.candidat_nom))];
+
+                document.getElementById('totalCommunes').textContent = communes.length.toLocaleString();
+                document.getElementById('totalVoix').textContent = totalVoix.toLocaleString();
+                document.getElementById('totalCandidats').textContent = candidats.length;
+
+                // Agrégation par parti
+                const partiStats = {};
+                data.forEach(d => {
+                    if (!partiStats[d.parti]) {
+                        partiStats[d.parti] = { voix: 0, sieges: 0 };
+                    }
+                    partiStats[d.parti].voix += d.voix;
+                    if (d.elu) partiStats[d.parti].sieges++;
+                });
+
+                const sortedPartis = Object.entries(partiStats).sort((a, b) => b[1].voix - a[1].voix);
+
+                // Graphique
+                const ctx = document.getElementById('nationalChart').getContext('2d');
+                if (nationalChart) nationalChart.destroy();
+                nationalChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedPartis.map(p => p[0]),
+                        datasets: [{
+                            label: 'Voix totales',
+                            data: sortedPartis.map(p => p[1].voix),
+                            backgroundColor: sortedPartis.map(p => getColorByParti(p[0])),
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+
+                // Tableau
+                const tbody = document.getElementById('nationalTableBody');
+                tbody.innerHTML = '';
+                sortedPartis.forEach(([parti, stats]) => {
+                    const pct = ((stats.voix / totalVoix) * 100).toFixed(2);
+                    tbody.innerHTML += `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(parti)}">${parti}</span></td>
+                            <td class="p-3 text-right font-bold">${stats.voix.toLocaleString()}</td>
+                            <td class="p-3 text-right">${pct}%</td>
+                            <td class="p-3 text-right font-bold">${stats.sieges}</td>
+                        </tr>`;
+                });
+
+                document.getElementById('loadingNational').classList.add('hidden');
+                document.getElementById('nationalResults').classList.remove('hidden');
+                document.getElementById('nationalResults').classList.add('loaded');
 
             } catch (error) {
-                hideLoading();
-                showError('Erreur lors de la recherche: ' + error.message);
                 console.error('Erreur:', error);
             }
         }
 
-        function displayResults(data) {
-            // Info commune
-            const firstResult = data[0];
-            document.getElementById('communeName').textContent = firstResult.commune_nom;
-            document.getElementById('departmentInfo').textContent = 
-                `${firstResult.departement_nom} (${firstResult.departement_code})`;
+        // ONGLET 3 : Par Département
+        async function loadDepartements() {
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('departement_code, departement_nom')
+                    .order('departement_code');
 
-            // Graphique
-            updateChart(data);
+                if (error) throw error;
 
-            // Tableau
-            const tbody = document.getElementById('resultsTableBody');
-            tbody.innerHTML = '';
-            
-            data.forEach(candidat => {
-                const row = tbody.insertRow();
-                row.className = 'border-b hover:bg-gray-50';
-                row.innerHTML = `
-                    <td class="p-3 font-medium">${candidat.candidat_nom} ${candidat.candidat_prenom}</td>
-                    <td class="p-3">
-                        <span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(candidat.parti)}">
-                            ${candidat.parti}
-                        </span>
-                    </td>
-                    <td class="p-3 text-right font-medium">${candidat.voix.toLocaleString()}</td>
-                    <td class="p-3 text-right font-bold">${candidat.pourcentage_exprimes.toFixed(2)}%</td>
-                    <td class="p-3 text-center">
-                        ${candidat.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}
-                    </td>
-                `;
-            });
-
-            showResults();
+                const depts = [...new Map(data.map(d => [d.departement_code, d])).values()];
+                const select = document.getElementById('departementSelect');
+                select.innerHTML = '<option value="">-- Choisissez un département --</option>';
+                depts.forEach(d => {
+                    select.innerHTML += `<option value="${d.departement_code}">${d.departement_code} - ${d.departement_nom}</option>`;
+                });
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
         }
 
-        function updateChart(data) {
-            const ctx = document.getElementById('resultsChart').getContext('2d');
+        async function loadDepartement() {
+            const deptCode = document.getElementById('departementSelect').value;
+            if (!deptCode) return;
+
+            const resultsDiv = document.getElementById('departementResults');
+            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
+
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('*')
+                    .eq('departement_code', deptCode);
+
+                if (error) throw error;
+
+                const partiStats = {};
+                data.forEach(d => {
+                    if (!partiStats[d.parti]) partiStats[d.parti] = 0;
+                    partiStats[d.parti] += d.voix;
+                });
+
+                const sorted = Object.entries(partiStats).sort((a, b) => b[1] - a[1]);
+                let html = `<h3 class="text-xl font-bold mb-4">Résultats pour ${data[0].departement_nom}</h3><table class="w-full"><thead><tr class="bg-gray-100"><th class="text-left p-3">Parti</th><th class="text-right p-3">Total voix</th></tr></thead><tbody>`;
+                
+                sorted.forEach(([parti, voix]) => {
+                    html += `<tr class="border-b"><td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm" style="background-color: ${getColorByParti(parti)}">${parti}</span></td><td class="p-3 text-right font-bold">${voix.toLocaleString()}</td></tr>`;
+                });
+
+                html += '</tbody></table>';
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
+            }
+        }
+
+        // ONGLET 4 : Classements
+        async function loadClassementPartis() {
+            try {
+                const { data, error } = await supabase
+                    .from('resultats_legislatives_2024')
+                    .select('parti');
+
+                if (error) throw error;
+
+                const partis = [...new Set(data.map(d => d.parti))].sort();
+                const select = document.getElementById('classementParti');
+                partis.forEach(p => {
+                    select.innerHTML += `<option value="${p}">${p}</option>`;
+                });
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function loadClassement() {
+            const type = document.getElementById('classementType').value;
+            const parti = document.getElementById('classementParti').value;
+            const resultsDiv = document.getElementById('classementResults');
             
-            if (chart) {
-                chart.destroy();
+            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
+
+            try {
+                let query = supabase.from('resultats_legislatives_2024').select('*');
+                if (parti) query = query.eq('parti', parti);
+                
+                const { data, error } = await query.order('voix', { ascending: false }).limit(20);
+                if (error) throw error;
+
+                let html = '<h3 class="text-xl font-bold mb-4">🏆 Top 20</h3><table class="w-full"><thead><tr class="bg-gray-100"><th class="p-3 text-left">Commune</th><th class="p-3 text-left">Candidat</th><th class="p-3 text-left">Parti</th><th class="p-3 text-right">Voix</th></tr></thead><tbody>';
+
+                data.forEach((d, i) => {
+                    html += `<tr class="border-b hover:bg-gray-50"><td class="p-3">#${i+1} ${d.commune_nom}</td><td class="p-3">${d.candidat_nom} ${d.candidat_prenom}</td><td class="p-3"><span class="px-2 py-1 rounded text-white text-sm" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td><td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td></tr>`;
+                });
+
+                html += '</tbody></table>';
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
+            }
+        }
+
+        // ONGLET 5 : Comparaison
+        async function compareCommunes() {
+            const commune1 = document.getElementById('compare1').value.trim();
+            const commune2 = document.getElementById('compare2').value.trim();
+            
+            if (!commune1 || !commune2) {
+                alert('Veuillez renseigner deux communes');
+                return;
             }
 
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: data.map(c => c.candidat_nom),
-                    datasets: [{
-                        label: 'Voix',
-                        data: data.map(c => c.voix),
-                        backgroundColor: data.map(c => getColorByParti(c.parti)),
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const candidat = data[context.dataIndex];
-                                    return `${candidat.voix.toLocaleString()} voix (${candidat.pourcentage_exprimes.toFixed(2)}%)`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return value.toLocaleString();
-                                }
-                            }
-                        }
-                    }
+            const resultsDiv = document.getElementById('compareResults');
+            resultsDiv.innerHTML = '<div class="text-center py-8"><div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>';
+
+            try {
+                const { data: data1, error: error1 } = await supabase.from('resultats_legislatives_2024').select('*').ilike('commune_nom', `%${commune1}%`);
+                const { data: data2, error: error2 } = await supabase.from('resultats_legislatives_2024').select('*').ilike('commune_nom', `%${commune2}%`);
+
+                if (error1 || error2) throw new Error('Erreur de recherche');
+                if (!data1.length || !data2.length) {
+                    resultsDiv.innerHTML = '<p class="text-red-600">Une ou plusieurs communes introuvables.</p>';
+                    return;
                 }
-            });
-        }
 
-        function showLoading() {
-            document.getElementById('loading').classList.remove('hidden');
-        }
+                let html = `
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4 text-indigo-900">${data1[0].commune_nom}</h3>
+                            <table class="w-full text-sm">
+                                <thead><tr class="bg-gray-100"><th class="p-2 text-left">Candidat</th><th class="p-2 text-right">Voix</th></tr></thead>
+                                <tbody>`;
+                
+                data1.forEach(d => {
+                    html += `<tr class="border-b"><td class="p-2">${d.candidat_nom} (${d.parti})</td><td class="p-2 text-right font-bold">${d.voix.toLocaleString()}</td></tr>`;
+                });
 
-        function hideLoading() {
-            document.getElementById('loading').classList.add('hidden');
-        }
+                html += `</tbody></table></div><div><h3 class="text-xl font-bold mb-4 text-indigo-900">${data2[0].commune_nom}</h3><table class="w-full text-sm"><thead><tr class="bg-gray-100"><th class="p-2 text-left">Candidat</th><th class="p-2 text-right">Voix</th></tr></thead><tbody>`;
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            errorDiv.querySelector('p').textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
+                data2.forEach(d => {
+                    html += `<tr class="border-b"><td class="p-2">${d.candidat_nom} (${d.parti})</td><td class="p-2 text-right font-bold">${d.voix.toLocaleString()}</td></tr>`;
+                });
 
-        function hideError() {
-            document.getElementById('error').classList.add('hidden');
-        }
-
-        function showResults() {
-            document.getElementById('results').classList.remove('hidden');
-        }
-
-        function hideResults() {
-            document.getElementById('results').classList.add('hidden');
-        }
-
-        function hideWelcome() {
-            document.getElementById('welcome').classList.add('hidden');
+                html += '</tbody></table></div></div>';
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = '<p class="text-red-600">Erreur: ' + error.message + '</p>';
+            }
         }
     </script>
 </body>
