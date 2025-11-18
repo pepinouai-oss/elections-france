@@ -48,6 +48,7 @@
                     <label class="block text-sm font-semibold mb-2">📍 Sélectionner un département :</label>
                     <select id="deptSelect" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="selectDepartement()">
                         <option value="">-- Choisissez un département --</option>
+                        <option value="FRANCE">🇫🇷 FRANCE ENTIÈRE</option>
                     </select>
                     <p class="text-xs text-gray-500 mt-1">Voir les résultats globaux + top communes</p>
                 </div>
@@ -339,14 +340,18 @@
             hideAllViews();
 
             try {
-                const { data, error } = await supabase
-                    .from('resultats_legislatives_2024')
-                    .select('*')
-                    .eq('departement_code', code);
+                let query = supabase.from('resultats_legislatives_2024').select('*');
+                
+                // Si ce n'est pas "France entière", filtrer par département
+                if (code !== 'FRANCE') {
+                    query = query.eq('departement_code', code);
+                }
+
+                const { data, error } = await query;
 
                 if (error) throw error;
 
-                displayDepartement(data);
+                displayDepartement(data, code);
                 hideLoading();
             } catch (error) {
                 console.error('Erreur:', error);
@@ -354,9 +359,12 @@
             }
         }
 
-        function displayDepartement(data) {
-            const deptNom = data[0].departement_nom;
-            document.getElementById('deptTitle').textContent = `📍 ${data[0].departement_code} - ${deptNom}`;
+        function displayDepartement(data, deptCode) {
+            const title = deptCode === 'FRANCE' 
+                ? '🇫🇷 France Entière' 
+                : `📍 ${data[0].departement_code} - ${data[0].departement_nom}`;
+            
+            document.getElementById('deptTitle').textContent = title;
 
             // Statistiques
             const communes = new Set(data.map(d => d.commune_code));
