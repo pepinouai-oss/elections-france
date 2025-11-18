@@ -15,7 +15,7 @@
             <h1 class="text-4xl font-bold text-gray-800 mb-2">🗳️ Élections Législatives 2024</h1>
             <p class="text-gray-600">Résultats du 2ème tour - 31 391 communes</p>
             <div class="mt-4 flex gap-4">
-                <a href="https://docs.google.com/spreadsheets/d/1655aOVKAbjEoT9qEzbEe1N_NKuNXBYux1z9Yol4PA8w/edit#gid=0" target="_blank" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all inline-flex items-center gap-2">
+                <a href="https://docs.google.com/spreadsheets/d/VOTRE_ID_SHEET/edit#gid=0" target="_blank" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all inline-flex items-center gap-2">
                     📊 Ouvrir les données brutes (Google Sheets)
                 </a>
                 <button onclick="showSheetEmbed()" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all">
@@ -221,107 +221,60 @@
 
         async function loadDepartements() {
             try {
-                console.log('🔄 Chargement des départements...');
+                console.log('🔄 Chargement des départements depuis departements_liste...');
                 
-                // IMPORTANT : Utiliser une requête SQL directe pour avoir tous les départements uniques
-                const { data, error } = await supabase.rpc('get_unique_departments');
+                const { data, error } = await supabase
+                    .from('departements_liste')
+                    .select('*');
 
-                // Si la fonction RPC n'existe pas, fallback sur une requête optimisée
-                if (error && error.code === '42883') {
-                    console.log('📌 Utilisation méthode alternative...');
-                    
-                    // Charger UNIQUEMENT les colonnes nécessaires, sans limite
-                    const { data: allData, error: err2 } = await supabase
-                        .from('resultats_legislatives_2024')
-                        .select('departement_code, departement_nom')
-                        .limit(70000); // Augmenter la limite au max
-
-                    if (err2) {
-                        console.error('❌ Erreur Supabase:', err2);
-                        throw err2;
-                    }
-
-                    console.log('📦 Données reçues:', allData ? allData.length : 0, 'lignes');
-
-                    if (!allData || allData.length === 0) {
-                        console.error('❌ Aucune donnée retournée !');
-                        alert('Erreur : Aucune donnée trouvée dans Supabase');
-                        return;
-                    }
-
-                    // Créer un Map pour dédupliquer
-                    const deptsMap = new Map();
-                    allData.forEach(item => {
-                        if (item.departement_code && item.departement_nom) {
-                            deptsMap.set(item.departement_code, item.departement_nom);
-                        }
-                    });
-
-                    console.log('🗺️ Départements uniques:', deptsMap.size);
-
-                    // Convertir en tableau et trier
-                    const deptArray = Array.from(deptsMap.entries()).sort((a, b) => {
-                        const numA = parseInt(a[0]);
-                        const numB = parseInt(b[0]);
-                        if (!isNaN(numA) && !isNaN(numB)) {
-                            return numA - numB;
-                        }
-                        return a[0].localeCompare(b[0]);
-                    });
-
-                    console.log('📋 Premiers départements:', deptArray.slice(0, 5));
-
-                    // Remplir le select
-                    const select = document.getElementById('deptSelect');
-                    
-                    while (select.options.length > 1) {
-                        select.remove(1);
-                    }
-
-                    let added = 0;
-                    deptArray.forEach(([code, nom]) => {
-                        const option = document.createElement('option');
-                        option.value = code;
-                        option.textContent = `${code} - ${nom}`;
-                        select.appendChild(option);
-                        added++;
-                    });
-
-                    console.log('✅ Départements ajoutés au select:', added);
-                    console.log('📊 Nombre total d\'options dans le select:', select.options.length - 1);
+                if (error) {
+                    console.error('❌ Erreur:', error);
+                    throw error;
                 }
+
+                console.log('📦 Départements reçus:', data.length);
+
+                const select = document.getElementById('deptSelect');
+                
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+
+                data.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.departement_code;
+                    option.textContent = `${dept.departement_code} - ${dept.departement_nom}`;
+                    select.appendChild(option);
+                });
+
+                console.log('✅ Départements chargés:', data.length);
 
             } catch (error) {
                 console.error('❌ Erreur complète:', error);
-                alert('Erreur lors du chargement des départements. Vérifiez la console (F12).');
+                alert('Erreur : ' + error.message);
             }
         }
 
         async function loadAllCommunes() {
             try {
+                console.log('🔄 Chargement des communes depuis communes_liste...');
+                
                 const { data, error } = await supabase
-                    .from('resultats_legislatives_2024')
-                    .select('commune_code, commune_nom, departement_code, departement_nom')
-                    .limit(70000); // Augmenter la limite
+                    .from('communes_liste')
+                    .select('*');
 
                 if (error) throw error;
 
-                const communes = new Map();
-                data.forEach(d => {
-                    if (!communes.has(d.commune_code)) {
-                        communes.set(d.commune_code, {
-                            code: d.commune_code,
-                            nom: d.commune_nom,
-                            dept: d.departement_code,
-                            deptNom: d.departement_nom
-                        });
-                    }
-                });
+                allCommunes = data.map(c => ({
+                    code: c.commune_code,
+                    nom: c.commune_nom,
+                    dept: c.departement_code,
+                    deptNom: c.departement_nom
+                }));
 
-                allCommunes = Array.from(communes.values());
                 console.log('✅ Communes chargées:', allCommunes.length);
             } catch (error) {
-                console.error('Erreur:', error);
+                console.error('❌ Erreur:', error);
             }
         }
 
@@ -578,7 +531,7 @@
             hideLoading();
             
             // Remplacez VOTRE_ID_SHEET par l'ID de votre Google Sheet
-            const sheetUrl = 'https://docs.google.com/spreadsheets/d/1655aOVKAbjEoT9qEzbEe1N_NKuNXBYux1z9Yol4PA8w/edit?usp=sharing&rm=minimal';
+            const sheetUrl = 'https://docs.google.com/spreadsheets/d/VOTRE_ID_SHEET/edit?usp=sharing&rm=minimal';
             document.getElementById('sheetIframe').src = sheetUrl;
             document.getElementById('sheetView').classList.remove('hidden');
         }
