@@ -14,14 +14,11 @@
         <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">🗳️ Élections Législatives 2024</h1>
             <p class="text-gray-600">Résultats du 2ème tour - 31 391 communes</p>
-            <div class="mt-4 flex gap-4">
-                <a href="https://docs.google.com/spreadsheets/d/1655aOVKAbjEoT9qEzbEe1N_NKuNXBYux1z9Yol4PA8w/edit#gid=0" target="_blank" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all inline-flex items-center gap-2">
-                    📊 Ouvrir les données brutes (Google Sheets)
-                </a>
-                <button onclick="showSheetEmbed()" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all">
-                    📋 Voir le tableau intégré
-                </button>
-            </div>
+           <div class="mt-4">
+    <a href="https://docs.google.com/spreadsheets/d/1655aOVKAbjEoT9qEzbEe1N_NKuNXBYux1z9Yol4PA8w/edit?usp=sharing" target="_blank" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all inline-flex items-center gap-2">
+        📊 Ouvrir dans Google Sheets (nouvel onglet)
+    </a>
+</div>
         </div>
 
         <!-- Panneau de filtres -->
@@ -169,14 +166,7 @@
             </div>
         </div>
 
-        <!-- VUE GOOGLE SHEETS -->
-        <div id="sheetView" class="hidden">
-            <div class="bg-white rounded-2xl shadow-2xl p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">📊 Données complètes (Google Sheets)</h2>
-                    <button onclick="hideSheetEmbed()" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
-                        ✕ Fermer
-                    </button>
+       
                 </div>
                 <p class="text-sm text-gray-600 mb-4">Utilisez les filtres de Google Sheets pour trier et filtrer comme vous voulez !</p>
                 <iframe 
