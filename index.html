@@ -14,11 +14,11 @@
         <div class="bg-white rounded-2xl shadow-2xl p-6 mb-6">
             <h1 class="text-4xl font-bold text-gray-800 mb-2">🗳️ Élections Législatives 2024</h1>
             <p class="text-gray-600">Résultats du 2ème tour - 31 391 communes</p>
-           <div class="mt-4">
-    <a href="https://docs.google.com/spreadsheets/d/1655aOVKAbjEoT9qEzbEe1N_NKuNXBYux1z9Yol4PA8w/edit?usp=sharing" target="_blank" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all inline-flex items-center gap-2">
-        📊 Ouvrir dans Google Sheets (nouvel onglet)
-    </a>
-</div>
+            <div class="mt-4">
+                <a href="https://docs.google.com/spreadsheets/d/1655aOVKAbjEoT9qEzbEe1N_NKuNXBYux1z9Yol4PA8w/edit?usp=sharing" target="_blank" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all inline-flex items-center gap-2">
+                    📊 Ouvrir dans Google Sheets (nouvel onglet)
+                </a>
+            </div>
         </div>
 
         <!-- Panneau de filtres -->
@@ -89,7 +89,7 @@
 
                 <!-- Graphique départemental -->
                 <div class="mb-6">
-                    <h3 class="text-xl font-bold mb-4">📊 Répartition par parti dans le département</h3>
+                    <h3 class="text-xl font-bold mb-4">📊 Répartition par parti</h3>
                     <canvas id="deptChart" height="80"></canvas>
                 </div>
 
@@ -101,8 +101,8 @@
                             <tr class="bg-gray-100">
                                 <th class="text-left p-3">Parti</th>
                                 <th class="text-right p-3">Voix totales</th>
-                                <th class="text-right p-3">% du département</th>
-                                <th class="text-right p-3">Sièges gagnés</th>
+                                <th class="text-right p-3">%</th>
+                                <th class="text-right p-3">Sièges</th>
                             </tr>
                         </thead>
                         <tbody id="deptTableBody"></tbody>
@@ -111,7 +111,7 @@
 
                 <!-- Top 20 communes -->
                 <div>
-                    <h3 class="text-xl font-bold mb-4">🏆 Top 20 des communes (par % de voix)</h3>
+                    <h3 class="text-xl font-bold mb-4">🏆 Top 20 des communes (par %)</h3>
                     <p class="text-sm text-gray-600 mb-4">Cliquez sur une commune pour voir le détail</p>
                     <table class="w-full">
                         <thead>
@@ -165,19 +165,6 @@
                 </div>
             </div>
         </div>
-
-       
-                </div>
-                <p class="text-sm text-gray-600 mb-4">Utilisez les filtres de Google Sheets pour trier et filtrer comme vous voulez !</p>
-                <iframe 
-                    id="sheetIframe"
-                    width="100%" 
-                    height="800" 
-                    frameborder="0"
-                    class="border-2 border-gray-300 rounded-lg"
-                ></iframe>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -186,11 +173,8 @@
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         const partyColors = {
-            'RN': '#0d378a', 'FN': '#0d378a',
-            'ENS': '#ffeb3b', 'Ensemble': '#ffeb3b', 'LREM': '#ffeb3b',
-            'LR': '#0066cc', 'UMP': '#0066cc',
-            'UG': '#ff4444', 'NFP': '#ff4444', 'NUPES': '#ff4444',
-            'PS': '#ff8fab', 'PCF': '#dd0000',
+            'RN': '#0d378a', 'ENS': '#ffeb3b', 'LR': '#0066cc',
+            'UG': '#ff4444', 'PS': '#ff8fab', 'PCF': '#dd0000',
             'DVG': '#ffaacc', 'DVD': '#6699cc'
         };
 
@@ -203,33 +187,18 @@
             return partyColors[parti] || '#888888';
         }
 
-        // Charger les listes au démarrage
         async function init() {
-            console.log('Initialisation...');
             await loadDepartements();
             await loadAllCommunes();
         }
 
         async function loadDepartements() {
             try {
-                console.log('🔄 Chargement des départements depuis departements_liste...');
-                
-                const { data, error } = await supabase
-                    .from('departements_liste')
-                    .select('*');
-
-                if (error) {
-                    console.error('❌ Erreur:', error);
-                    throw error;
-                }
-
-                console.log('📦 Départements reçus:', data.length);
+                const { data, error } = await supabase.from('departements_liste').select('*');
+                if (error) throw error;
 
                 const select = document.getElementById('deptSelect');
-                
-                while (select.options.length > 1) {
-                    select.remove(1);
-                }
+                while (select.options.length > 2) select.remove(2);
 
                 data.forEach(dept => {
                     const option = document.createElement('option');
@@ -237,39 +206,26 @@
                     option.textContent = `${dept.departement_code} - ${dept.departement_nom}`;
                     select.appendChild(option);
                 });
-
-                console.log('✅ Départements chargés:', data.length);
-
             } catch (error) {
-                console.error('❌ Erreur complète:', error);
-                alert('Erreur : ' + error.message);
+                console.error('Erreur:', error);
             }
         }
 
         async function loadAllCommunes() {
             try {
-                console.log('🔄 Chargement des communes depuis communes_liste...');
-                
-                const { data, error } = await supabase
-                    .from('communes_liste')
-                    .select('*');
-
+                const { data, error } = await supabase.from('communes_liste').select('*');
                 if (error) throw error;
 
                 allCommunes = data.map(c => ({
                     code: c.commune_code,
                     nom: c.commune_nom,
-                    dept: c.departement_code,
-                    deptNom: c.departement_nom
+                    dept: c.departement_code
                 }));
-
-                console.log('✅ Communes chargées:', allCommunes.length);
             } catch (error) {
-                console.error('❌ Erreur:', error);
+                console.error('Erreur:', error);
             }
         }
 
-        // Recherche commune avec autocomplete
         function searchCommune() {
             const input = document.getElementById('communeSearch').value.trim().toLowerCase();
             const list = document.getElementById('communeList');
@@ -279,11 +235,10 @@
                 return;
             }
 
-            // Filtrer : commence par OU contient le mot
-            const filtered = allCommunes.filter(c => {
-                const nom = c.nom.toLowerCase();
-                return nom.startsWith(input) || nom.split(/[\s-]/).some(word => word.startsWith(input));
-            }).slice(0, 50);
+            const filtered = allCommunes.filter(c => 
+                c.nom.toLowerCase().startsWith(input) || 
+                c.nom.toLowerCase().split(/[\s-]/).some(word => word.startsWith(input))
+            ).slice(0, 50);
 
             list.innerHTML = '';
             filtered.forEach(c => {
@@ -300,7 +255,7 @@
             const code = document.getElementById('communeList').value;
             if (!code) return;
 
-            showLoading();
+            document.getElementById('loadingZone').classList.remove('hidden');
             hideAllViews();
 
             try {
@@ -314,10 +269,10 @@
 
                 currentDeptCode = data[0].departement_code;
                 displayCommune(data);
-                hideLoading();
+                document.getElementById('loadingZone').classList.add('hidden');
             } catch (error) {
                 console.error('Erreur:', error);
-                hideLoading();
+                document.getElementById('loadingZone').classList.add('hidden');
             }
         }
 
@@ -326,129 +281,99 @@
             if (!code) return;
 
             currentDeptCode = code;
-            showLoading();
+            document.getElementById('loadingZone').classList.remove('hidden');
             hideAllViews();
 
             try {
                 let query = supabase.from('resultats_legislatives_2024').select('*');
-                
-                // Si ce n'est pas "France entière", filtrer par département
-                if (code !== 'FRANCE') {
-                    query = query.eq('departement_code', code);
-                }
+                if (code !== 'FRANCE') query = query.eq('departement_code', code);
 
                 const { data, error } = await query;
-
                 if (error) throw error;
 
                 displayDepartement(data, code);
-                hideLoading();
+                document.getElementById('loadingZone').classList.add('hidden');
             } catch (error) {
                 console.error('Erreur:', error);
-                hideLoading();
+                document.getElementById('loadingZone').classList.add('hidden');
             }
         }
 
         function displayDepartement(data, deptCode) {
-            const title = deptCode === 'FRANCE' 
-                ? '🇫🇷 France Entière' 
-                : `📍 ${data[0].departement_code} - ${data[0].departement_nom}`;
-            
+            const title = deptCode === 'FRANCE' ? '🇫🇷 France Entière' : `📍 ${data[0].departement_code} - ${data[0].departement_nom}`;
             document.getElementById('deptTitle').textContent = title;
 
-            // Statistiques
             const communes = new Set(data.map(d => d.commune_code));
             const totalVoix = data.reduce((sum, d) => sum + d.voix, 0);
             const sieges = data.filter(d => d.elu).length;
 
             document.getElementById('deptCommunes').textContent = communes.size;
             document.getElementById('deptVoix').textContent = totalVoix.toLocaleString();
-            document.getElementById('deptInscrits').textContent = '-'; // Besoin calcul
+            document.getElementById('deptInscrits').textContent = '-';
             document.getElementById('deptSieges').textContent = sieges;
 
-            // Agrégation par parti
             const partiStats = {};
             data.forEach(d => {
-                if (!partiStats[d.parti]) {
-                    partiStats[d.parti] = { voix: 0, sieges: 0 };
-                }
+                if (!partiStats[d.parti]) partiStats[d.parti] = { voix: 0, sieges: 0 };
                 partiStats[d.parti].voix += d.voix;
                 if (d.elu) partiStats[d.parti].sieges++;
             });
 
             const sorted = Object.entries(partiStats).sort((a, b) => b[1].voix - a[1].voix);
 
-            // Graphique
             const ctx = document.getElementById('deptChart').getContext('2d');
             if (deptChart) deptChart.destroy();
             deptChart = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: sorted.map(p => p[0]),
-                    datasets: [{
-                        data: sorted.map(p => p[1].voix),
-                        backgroundColor: sorted.map(p => getColorByParti(p[0]))
-                    }]
+                    datasets: [{ data: sorted.map(p => p[1].voix), backgroundColor: sorted.map(p => getColorByParti(p[0])) }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'right' }
-                    }
-                }
+                options: { responsive: true, plugins: { legend: { position: 'right' } } }
             });
 
-            // Tableau récap
             const tbody = document.getElementById('deptTableBody');
             tbody.innerHTML = '';
             sorted.forEach(([parti, stats]) => {
                 const pct = ((stats.voix / totalVoix) * 100).toFixed(2);
-                tbody.innerHTML += `
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(parti)}">${parti}</span></td>
-                        <td class="p-3 text-right font-bold">${stats.voix.toLocaleString()}</td>
-                        <td class="p-3 text-right">${pct}%</td>
-                        <td class="p-3 text-right font-bold">${stats.sieges}</td>
-                    </tr>`;
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50">
+                    <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(parti)}">${parti}</span></td>
+                    <td class="p-3 text-right font-bold">${stats.voix.toLocaleString()}</td>
+                    <td class="p-3 text-right">${pct}%</td>
+                    <td class="p-3 text-right font-bold">${stats.sieges}</td>
+                </tr>`;
             });
 
-            // Top 20
             const top20 = [...data].sort((a, b) => b.pourcentage_exprimes - a.pourcentage_exprimes).slice(0, 20);
             const topBody = document.getElementById('deptTopBody');
             topBody.innerHTML = '';
             top20.forEach((d, i) => {
-                topBody.innerHTML += `
-                    <tr class="border-b hover:bg-indigo-50 cursor-pointer" onclick="loadCommuneByCode('${d.commune_code}')">
-                        <td class="p-3">#${i + 1}</td>
-                        <td class="p-3 font-semibold text-indigo-600">${d.commune_nom}</td>
-                        <td class="p-3">${d.candidat_nom}</td>
-                        <td class="p-3"><span class="px-2 py-1 rounded text-white text-sm" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
-                        <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
-                        <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
-                    </tr>`;
+                topBody.innerHTML += `<tr class="border-b hover:bg-indigo-50 cursor-pointer" onclick="loadCommuneByCode('${d.commune_code}')">
+                    <td class="p-3">#${i + 1}</td>
+                    <td class="p-3 font-semibold text-indigo-600">${d.commune_nom}</td>
+                    <td class="p-3">${d.candidat_nom}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded text-white text-sm" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
+                    <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
+                    <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
+                </tr>`;
             });
 
             document.getElementById('departementView').classList.remove('hidden');
         }
 
         async function loadCommuneByCode(code) {
-            showLoading();
+            document.getElementById('loadingZone').classList.remove('hidden');
             hideAllViews();
 
             try {
-                const { data, error } = await supabase
-                    .from('resultats_legislatives_2024')
-                    .select('*')
-                    .eq('commune_code', code)
-                    .order('voix', { ascending: false });
-
+                const { data, error } = await supabase.from('resultats_legislatives_2024').select('*').eq('commune_code', code).order('voix', { ascending: false });
                 if (error) throw error;
 
                 displayCommune(data);
-                hideLoading();
+                document.getElementById('loadingZone').classList.add('hidden');
             } catch (error) {
                 console.error('Erreur:', error);
-                hideLoading();
+                document.getElementById('loadingZone').classList.add('hidden');
             }
         }
 
@@ -457,40 +382,28 @@
             document.getElementById('communeTitle').textContent = commune.commune_nom;
             document.getElementById('communeInfo').textContent = `${commune.departement_nom} (${commune.departement_code})`;
 
-            // Graphique
             const ctx = document.getElementById('communeChart').getContext('2d');
             if (communeChart) communeChart.destroy();
             communeChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: data.map(d => d.candidat_nom),
-                    datasets: [{
-                        label: 'Voix',
-                        data: data.map(d => d.voix),
-                        backgroundColor: data.map(d => getColorByParti(d.parti)),
-                        borderRadius: 8
-                    }]
+                    datasets: [{ label: 'Voix', data: data.map(d => d.voix), backgroundColor: data.map(d => getColorByParti(d.parti)), borderRadius: 8 }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
-                }
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
             });
 
-            // Tableau
             const tbody = document.getElementById('communeTableBody');
             tbody.innerHTML = '';
             data.forEach(d => {
-                tbody.innerHTML += `
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3 font-medium">${d.candidat_nom} ${d.candidat_prenom}</td>
-                        <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
-                        <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
-                        <td class="p-3 text-right">${d.pourcentage_inscrits.toFixed(2)}%</td>
-                        <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
-                        <td class="p-3 text-center">${d.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}</td>
-                    </tr>`;
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50">
+                    <td class="p-3 font-medium">${d.candidat_nom} ${d.candidat_prenom}</td>
+                    <td class="p-3"><span class="px-3 py-1 rounded-full text-white text-sm font-semibold" style="background-color: ${getColorByParti(d.parti)}">${d.parti}</span></td>
+                    <td class="p-3 text-right font-bold">${d.voix.toLocaleString()}</td>
+                    <td class="p-3 text-right">${d.pourcentage_inscrits.toFixed(2)}%</td>
+                    <td class="p-3 text-right font-bold">${d.pourcentage_exprimes.toFixed(2)}%</td>
+                    <td class="p-3 text-center">${d.elu ? '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">ÉLU</span>' : ''}</td>
+                </tr>`;
             });
 
             document.getElementById('communeView').classList.remove('hidden');
@@ -510,35 +423,11 @@
             hideAllViews();
         }
 
-        function showLoading() {
-            document.getElementById('loadingZone').classList.remove('hidden');
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingZone').classList.add('hidden');
-        }
-
         function hideAllViews() {
             document.getElementById('departementView').classList.add('hidden');
             document.getElementById('communeView').classList.add('hidden');
-            document.getElementById('sheetView').classList.add('hidden');
         }
 
-        function showSheetEmbed() {
-            hideAllViews();
-            hideLoading();
-            
-            // Remplacez VOTRE_ID_SHEET par l'ID de votre Google Sheet
-            const sheetUrl = 'https://docs.google.com/spreadsheets/d/1655aOVKAbjEoT9qEzbEe1N_NKuNXBYux1z9Yol4PA8w/edit?usp=sharing&rm=minimal';
-            document.getElementById('sheetIframe').src = sheetUrl;
-            document.getElementById('sheetView').classList.remove('hidden');
-        }
-
-        function hideSheetEmbed() {
-            document.getElementById('sheetView').classList.add('hidden');
-        }
-
-        // Recherche au clavier
         document.getElementById('communeSearch').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 const list = document.getElementById('communeList');
