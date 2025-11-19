@@ -43,11 +43,11 @@
                 <!-- Recherche par Département -->
                 <div>
                     <label class="block text-sm font-semibold mb-2">📍 Sélectionner un département :</label>
-                    <select id="deptSelect" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="selectDepartement()">
+                    <select id="deptSelect" class="w-full p-3 border-2 border-gray-300 rounded-lg" onchange="selectDepartement(); searchCommune();">
                         <option value="">-- Choisissez un département --</option>
                         <option value="FRANCE">🇫🇷 FRANCE ENTIÈRE</option>
                     </select>
-                    <p class="text-xs text-gray-500 mt-1">Voir les résultats globaux + top communes</p>
+                    <p class="text-xs text-gray-500 mt-1">Filtrer les communes par département</p>
                 </div>
             </div>
 
@@ -229,16 +229,31 @@
         function searchCommune() {
             const input = document.getElementById('communeSearch').value.trim().toLowerCase();
             const list = document.getElementById('communeList');
+            const selectedDept = document.getElementById('deptSelect').value;
 
             if (input.length < 2) {
                 list.classList.add('hidden');
                 return;
             }
 
-            const filtered = allCommunes.filter(c => 
-                c.nom.toLowerCase().startsWith(input) || 
-                c.nom.toLowerCase().split(/[\s-]/).some(word => word.startsWith(input))
-            ).slice(0, 50);
+            // Filtrer les communes
+            let filtered = allCommunes.filter(c => {
+                const nom = c.nom.toLowerCase();
+                const matchesInput = nom.startsWith(input) || nom.split(/[\s-]/).some(word => word.startsWith(input));
+                
+                // Si un département est sélectionné (et que ce n'est pas FRANCE), filtrer par département
+                if (selectedDept && selectedDept !== 'FRANCE' && selectedDept !== '') {
+                    return matchesInput && c.dept === selectedDept;
+                }
+                
+                return matchesInput;
+            }).slice(0, 50);
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<option disabled>Aucune commune trouvée</option>';
+                list.classList.remove('hidden');
+                return;
+            }
 
             list.innerHTML = '';
             filtered.forEach(c => {
